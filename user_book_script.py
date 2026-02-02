@@ -20,20 +20,24 @@ params = {
 resp = requests.get(url, params=params)
 # parse JSON into Python as a dictionary
 book_data = resp.json()
-print(book_data)
+#print(book_data)
 
 # create additional variables for easy querying
 volume_info = book_data["items"][0]["volumeInfo"]
+accessInfo = not book_data["items"][0]["accessInfo"]['publicDomain']
 author = volume_info["authors"]
 # practice with conditional expressions!
 prettify_author = author if len(author) > 1 else author[0]
 
 # display title, author, page count, publication date
-# fstrings require Python 3.6 or higher
 # \n adds a new line for easier reading
 print(f"\nTitle: {volume_info['title']}")
 print(f"Author: {prettify_author}")
-print(f"Page Count: {volume_info['pageCount']}")
 print(f"Publication Date: {volume_info['publishedDate']}")
+print(f"subjects: {volume_info['categories']}")
+print(f"languages: {volume_info['language']}")
+print(f"copyright: {accessInfo}")
+print(f"media_type: {volume_info['printType']}")
+print(f"Page Count: {volume_info['pageCount']}")
 print(f"Summary: {volume_info['description']}")
 print("\n***\n")
