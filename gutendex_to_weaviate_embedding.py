@@ -27,9 +27,9 @@ client = weaviate.Client(
 
 # Test connection
 if client.is_ready():
-    print("✅ Weaviate is ready")
+    print("Weaviate is ready")
 else:
-    raise Exception("❌ Could not connect to Weaviate")
+    raise Exception("Could not connect to Weaviate")
 
 # -----------------------
 # Define Book schema
@@ -62,9 +62,9 @@ except Exception:
 
 if "Book" not in existing_classes:
     client.schema.create_class(book_class)
-    print("✅ Book class created")
+    print("Book class created")
 else:
-    print("ℹ️ Book class already exists")
+    print("Book class already exists")
 
 # -----------------------
 # Fetch books from Gutendex
@@ -77,7 +77,7 @@ def fetch_books(max_pages=5):
 
     while next_url:
         if max_pages and page_count >= max_pages:
-            print(f"✅ Reached page limit of {max_pages}. Stopping fetch.")
+            print(f"Reached page limit of {max_pages}. Stopping fetch.")
             break
 
         page_count += 1
@@ -111,18 +111,18 @@ def fetch_books(max_pages=5):
                     # Check if it's an OpenAI API error
                     err_msg = str(e)
                     if "vectorize target vector" in err_msg and ("429" in err_msg or "quota" in err_msg or "401" in err_msg):
-                        print(f"⚠️ Skipped book '{book.get('title')}' due to OpenAI API issue: {err_msg.splitlines()[0]}")
+                        print(f"Skipped book '{book.get('title')}' due to OpenAI API issue: {err_msg.splitlines()[0]}")
                         continue  # skip this book
                     else:
-                        print(f"⚠️ Failed to insert book '{book.get('title')}': {e}")
+                        print(f"Failed to insert book '{book.get('title')}': {e}")
 
             next_url = data.get('next')
 
         except requests.exceptions.RequestException as e:
-            print(f"❌ Error fetching page {page_count}: {e}")
+            print(f"Error fetching page {page_count}: {e}")
             break
 
-    print(f"✅ Finished fetching {page_count} pages and pushing to Weaviate!")
+    print(f"Finished fetching {page_count} pages and pushing to Weaviate!")
 
 # -----------------------
 # Main script
@@ -136,4 +136,4 @@ if __name__ == "__main__":
     fetch_books(max_pages=max_pages_to_fetch)
 
     client.close()
-    print("✅ Weaviate connection closed")
+    print("Weaviate connection closed")
