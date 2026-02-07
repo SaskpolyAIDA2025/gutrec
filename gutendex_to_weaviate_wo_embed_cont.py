@@ -43,9 +43,9 @@ book_class = {
 existing_classes = [c["class"] for c in client.schema.get()["classes"]]
 if "Book" not in existing_classes:
     client.schema.create_class(book_class)
-    print("✅ Book class created")
+    print("Book class created")
 else:
-    print("ℹ️ Book class already exists")
+    print("Book class already exists")
 
 # -----------------------
 # Fetch books from Gutendex
@@ -98,7 +98,7 @@ def fetch_books(max_books=100, batch_size=20):
             for b in books_to_batch:
                 batch.add_data_object(b, "Book")
 
-    print(f"✅ Finished inserting {books_inserted} books into Weaviate.")
+    print(f"Finished inserting {books_inserted} books into Weaviate.")
 
 # -----------------------
 # Main
@@ -106,4 +106,4 @@ def fetch_books(max_books=100, batch_size=20):
 if __name__ == "__main__":
     fetch_books(max_books=100, batch_size=20)
     client.close()
-    print("✅ Weaviate connection closed")
+    print("Weaviate connection closed")
