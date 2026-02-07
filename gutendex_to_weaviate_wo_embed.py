@@ -19,9 +19,9 @@ client = weaviate.Client(
 
 # Test connection
 if client.is_ready():
-    print("✅ Weaviate is ready")
+    print("Weaviate is ready")
 else:
-    raise Exception("❌ Could not connect to Weaviate")
+    raise Exception("Could not connect to Weaviate")
 
 # -----------------------
 # Define Book schema (no AI/vectorization)
@@ -49,12 +49,12 @@ book_class = {
 # -----------------------
 existing_classes = [c["class"] for c in client.schema.get()["classes"]]
 if "Book" in existing_classes:
-    print("ℹ️ Deleting existing Book class to recreate with vectorizer:none")
+    print("Deleting existing Book class to recreate with vectorizer:none")
     client.schema.delete_class("Book")
 
 # Create Book class
 client.schema.create_class(book_class)
-print("✅ Book class created with vectorizer:none")
+print("Book class created with vectorizer:none")
 
 # -----------------------
 # Fetch books from Gutendex
@@ -100,15 +100,15 @@ def fetch_books(max_pages=5):  # default to 5 pages
                         vector=None  # ensures no vectorization
                     )
                 except Exception as e:
-                    print(f"⚠️ Failed to insert '{book.get('title')}': {e}")
+                    print(f"Failed to insert '{book.get('title')}': {e}")
 
             next_url = data.get('next')
 
         except requests.exceptions.RequestException as e:
-            print(f"❌ Error fetching page {page_count}: {e}")
+            print(f"Error fetching page {page_count}: {e}")
             break
 
-    print(f"✅ Finished fetching {page_count} pages and pushing to Weaviate!")
+    print(f"Finished fetching {page_count} pages and pushing to Weaviate!")
 
 # -----------------------
 # Main script
@@ -121,4 +121,4 @@ if __name__ == "__main__":
     max_pages_to_fetch = args.pages if args.pages else 5
     fetch_books(max_pages=max_pages_to_fetch)
 
-    print("✅ Script completed")
+    print("Script completed")
