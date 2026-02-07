@@ -1,3 +1,16 @@
+import weaviate
+from weaviate.classes.init import Auth
+
+client = weaviate.connect_to_weaviate_cloud(
+    cluster_url="https://cywukygmt0k0kyk3dzng.c0.asia-southeast1.gcp.weaviate.cloud",
+    auth_credentials=Auth.api_key("cXBHd2Z2Zm56NlE3S2xkUF90Y2xIRWF0aXNWdk9Wa29DLzQ1UjRnOGt1Q29ZWnlNY1RhRldpOFNWQXFRPV92MjAw"),
+    headers={
+        "X-OpenAI-Api-Key": "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"
+    }
+)
+
+print(client.is_ready())
+
 import requests
 import csv
 import sys
