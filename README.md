@@ -6,3 +6,8 @@ Another line of code
 
 This is the 3rd line of code
 Let us push this code to the repository
+
+# user_book_script
+# Add an evironmental (.env) file with:
+GOOGLE_BOOKS_API_KEY=<API KEY>
+
