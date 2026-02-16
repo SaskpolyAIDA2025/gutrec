@@ -1,8 +1,12 @@
+import pandas as pd
 import requests
 import argparse
 import weaviate
 from weaviate.auth import AuthApiKey
 import os
+import ast
+import math
+import re
 
 # -----------------------
 # Weaviate Cloud credentials
@@ -24,6 +28,8 @@ if client.is_ready():
 else:
     raise Exception("Could not connect to Weaviate")
 
+client.schema.delete_class("Book")
+
 # -----------------------
 # Define Book schema
 # -----------------------
@@ -32,6 +38,7 @@ book_class = {
     "description": "A book from Project Gutenberg",
     "vectorizer": "none",
     "properties": [
+        {"name": "id_pg", "dataType": ["text"]},
         {"name": "title", "dataType": ["text"]},
         {"name": "authors", "dataType": ["text"]},
         {"name": "translators", "dataType": ["text"]},
@@ -39,7 +46,7 @@ book_class = {
         {"name": "bookshelves", "dataType": ["text"]},
         {"name": "languages", "dataType": ["text"]},
         {"name": "copyright", "dataType": ["text"]},
-        {"name": "media_type", "dataType": ["text"]},
+        #{"name": "media_type", "dataType": ["text"]},
         {"name": "download_count", "dataType": ["int"]},
         {"name": "summaries", "dataType": ["text"]}
     ]
@@ -64,7 +71,7 @@ else:
 # -----------------------
 def embed_text(text):
     payload = {
-        "model": "nomic-embed-text",
+        "model": "mxbai-embed-large", # "all-minilm", # "nomic-embed-text",
         "prompt": text
     }
     response = requests.post("http://localhost:11434/api/embeddings", json=payload)
@@ -72,85 +79,93 @@ def embed_text(text):
     return response.json()["embedding"]
 
 # -----------------------
+# Clean text
+# -----------------------
+def clean_text(t):
+    if not isinstance(t, str):
+        return ""
+    t = t.replace("\x00", "")
+    t = t.encode("utf-8", "ignore").decode("utf-8")
+    t = re.sub(r"[\r\n\t]+", " ", t)
+    return t
+
+# -----------------------
+# Set a safe string value
+# -----------------------
+def safe_str(value):
+    if value is None:
+        return ""
+    if isinstance(value, float) and math.isnan(value):
+        return ""
+    return str(value)
+
+# -----------------------
 # Fetch books from Gutendex
 # -----------------------
-API_URL = "https://gutendex.com/books"
+def fetch_books():
+    df = pd.read_csv("processed_books.csv")
 
-def fetch_books(max_pages=5):
-    next_url = API_URL
-    page_count = 0
+    books = []
 
-    with client.batch as batch:
-        batch.batch_size = 20
+    for i, row in df.iterrows():
 
-        while next_url:
-            if max_pages and page_count >= max_pages:
-                print(f"Reached page limit of {max_pages}. Stopping fetch.")
-                break
+        languages = ast.literal_eval(row["languages"])
+        bookshelves = ast.literal_eval(row["bookshelves"])
+        subjects = ast.literal_eval(row["subjects"])
 
-            page_count += 1
-            print(f"Fetching page {page_count}...")
 
-            try:
-                response = requests.get(next_url)
-                response.raise_for_status()
-                data = response.json()
+        # Extract row as a dictionary
+        book_dict = {
+            "id_pg": safe_str(row["id"]),
+            "title": safe_str(row["title"]),
+            "authors": safe_str(row["authors"]),
+            "translators": safe_str(row["translators"]),
+            "subjects": safe_str(row["subjects"]),
+            "bookshelves": safe_str(row["bookshelves"]),
+            "languages": safe_str(row["languages"]),
+            "copyright": safe_str(row["copyright"]),
+            #"media_type": safe_str(row["media_type"]),
+            "download_count": row["download_count"],
+            "summaries": safe_str(row["summaries"])
+        }
 
-                for book in data.get('results', []):
-                    properties = {
-                        "title": str(book.get('title', "")),
-                        "authors": "; ".join([str(a.get('name', '')) for a in book.get('authors', [])]),
-                        "translators": "; ".join([str(t.get('name', '')) for t in book.get('translators', [])]),
-                        "subjects": "; ".join([str(s) for s in book.get('subjects', [])]),
-                        "bookshelves": "; ".join([str(b) for b in book.get('bookshelves', [])]),
-                        "languages": "; ".join([str(l) for l in book.get('languages', [])]),
-                        "copyright": str(book.get('copyright')) if book.get('copyright') is not None else "",
-                        "media_type": str(book.get('media_type', "")),
-                        "download_count": int(book.get('download_count', 0)),
-                        "summaries": "; ".join([str(s) for s in book.get('summaries', [])])
-                    }
+        # Build embedding text (you can customize this)
+        embedding_text = (
+            f"Title: {safe_str(row['title'])}. "
+            f"Author: {safe_str(row['authors'])}. "
+            f"Language: {safe_str(' '.join(languages))} "
+            f"Bookshelves: {safe_str(' '.join(bookshelves))} "
+            f"Subjects: {safe_str(' '.join(subjects))}"
+            f"Summary: {safe_str(row['summaries'])}"
+        )
 
-                    # Create text to embed
-                    text_for_embedding = (
-                        "Title: "+ properties["title"] + "\n" +
-                        "Author: " + properties["authors"] + "\n" +
-                        "Subjects: "+ properties["subjects"] + "\n" +
-                        "Summary: " + properties["summaries"]
-                    )
+        MAX_LEN = 800
+        embedding_text = clean_text(embedding_text)
+        #embedding_text = embedding_text[:MAX_LEN]
 
-                    try:
+        try:
+            embedding = embed_text(embedding_text)
 
-                        embedding = embed_text(text_for_embedding)
+            client.data_object.create(
+                data_object=book_dict,
+                class_name="Book",
+                vector=embedding  # REQUIRED for WCS
+            )
+            print(f"Book number {i} added.")
 
-                        batch.add_data_object(
-                            data_object=properties,
-                            class_name="Book",
-                            vector=embedding  # REQUIRED for WCS
-                        )
+        except Exception as e:
+            print(f"Failed to insert book {row['title']}: {e}")
+            print("Embedding text length:", len(embedding_text))
+            print("Embedding text preview:", embedding_text[:300])
+        
+        if i == 1000:
+            break
 
-                        #client.data_object.create(
-                        #    data_object=properties,
-                        #    class_name="Book",
-                        #)
-                    except Exception as e:
-                        print(f"Failed to insert book '{book.get('title')}': {e}")
-
-                next_url = data.get('next')
-
-            except requests.exceptions.RequestException as e:
-                print(f"Error fetching page {page_count}: {e}")
-                break
-
-    print(f"Finished fetching {page_count} pages and pushing to Weaviate!")
+    print(f"Finished fetching books and pushing to Weaviate!")
 
 # -----------------------
 # Main script
 # -----------------------
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Fetch books from Gutendex and push to Weaviate.")
-    parser.add_argument("--pages", type=int, help="Number of pages to fetch (default: 5)")
-    args = parser.parse_args()
-
-    max_pages_to_fetch = args.pages if args.pages else 5
-    fetch_books(max_pages=max_pages_to_fetch)
+    fetch_books()
     print("Done!")
