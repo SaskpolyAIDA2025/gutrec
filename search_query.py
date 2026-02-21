@@ -48,8 +48,8 @@ def semantic_search(query_text: str, k: int = 5):
     result = (
         client.query
         .get(
-            "Book",
-            ["title", "authors", "subjects", "summaries"]
+            "Book2",
+            ["title", "authors", "bookshelves", "subjects", "download_count", "summaries"]
         )
         .with_near_vector({"vector": embedding})
         .with_limit(k)
@@ -64,11 +64,11 @@ def semantic_search(query_text: str, k: int = 5):
 # Run a test query
 # -----------------------
 if __name__ == "__main__":
-    #book_query = "Title: Una breve historia de casi todo\nAuthor: Bill Bryson\nSubjects: Science\nSummary: Bill Bryson se describe como un viajero renuente, pero ni siquiera cuando está en su casa, en la seguridad de su estudio, puede contener esa curiosidad que siente por el mundo que le rodea. En Una breve historia de casi todo intenta entender qué ocurrió entre la Gran Explosión y el surgimiento de la civilización, cómo pasamos de la nada a lo que ahora somos. El autor aborda materias tan terriblemente aburridas como geología, química y física, pero lo hace de forma tal que resultan comprensibles y amenas. La cuestión es cómo sabemos lo que sabemos. En sus viajes a través del tiempo y del espacio Bryson se topa con una espléndida colección de científicos asombradamente excéntricos, competitivos, obsesivos e insensatos."
+    #book_query = "Title: A Short History of Nearly Everything\nAuthor: Bill Bryson\nSubjects: Science\nSummary: This brand-new edition of the colossal bestseller is lavishly illustrated to convey, in pictures as in words, Bill Bryson's exciting, informative journey into the world of science. In this acclaimed bestseller, beloved author Bill Bryson confronts his greatest challenge yet: to understand — and, if possible, answer — the oldest, biggest questions we have posed about the universe and ourselves. Taking as territory everything from the Big Bang to the rise of civilization, Bryson seeks to understand how we got from there being nothing at all to there being us. The result is a sometimes profound, sometimes funny, and always supremely clear and entertaining adventure in the realms of human knowledge, as only Bill Bryson can render it. Now, in this handsome new edition, Bill Bryson's words are supplemented by full-colour artwork that explains in visual terms the concepts and wonder of science, at the same time giving face to the major players in the world of scientific study. Eloquently and entertainingly described, as well as lavishly illustrated, science has never been more involving or entertaining."
 
     #book_query = "Title: Momo\nAuthor: Michael Ende\nSubjects: Juvenile Fiction\nSummary: The Neverending Story is Michael Ende's best-known book, but Momo—published six years earlier—is the all-ages fantasy novel that first won him wide acclaim. After the sweet-talking gray men come to town, life becomes terminally efficient. Can Momo, a young orphan girl blessed with the gift of listening, vanquish the ashen-faced time thieves before joy vanishes forever? With gorgeous new drawings by Marcel Dzama and a new translation from the German by Lucas Zwirner, this all-new 40th anniversary edition celebrates the book's first U.S. publication in over 25 years."
 
     #semantic_search(book_query)
-    #semantic_search("a story about adventure in the sea", k=5)
-    semantic_search("a book of algebra and mathematics", k=5)
-
+    #semantic_search("a story about adventure in the sea", k=10)
+    #semantic_search("a book of algebra and mathematics", k=10)
+    semantic_search("books about existential dread in industrial cities", k=5)
