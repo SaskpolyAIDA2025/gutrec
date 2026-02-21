@@ -28,13 +28,13 @@ if client.is_ready():
 else:
     raise Exception("Could not connect to Weaviate")
 
-client.schema.delete_class("Book")
+client.schema.delete_class("Book2")
 
 # -----------------------
 # Define Book schema
 # -----------------------
-book_class = {
-    "class": "Book",
+book2_class = {
+    "class": "Book2",
     "description": "A book from Project Gutenberg",
     "vectorizer": "none",
     "properties": [
@@ -61,7 +61,7 @@ except Exception:
     existing_classes = []
 
 if "Book" not in existing_classes:
-    client.schema.create_class(book_class)
+    client.schema.create_class(book2_class)
     print("Book class created")
 else:
     print("Book class already exists")
@@ -133,9 +133,9 @@ def fetch_books():
         embedding_text = (
             f"Title: {safe_str(row['title'])}. "
             f"Author: {safe_str(row['authors'])}. "
-            f"Language: {safe_str(' '.join(languages))} "
-            f"Bookshelves: {safe_str(' '.join(bookshelves))} "
-            f"Subjects: {safe_str(' '.join(subjects))}"
+            f"Language: {safe_str(' '.join(languages))}. "
+            f"Bookshelves: {safe_str(' '.join(bookshelves))}. "
+            f"Subjects: {safe_str(' '.join(subjects))}. "
             f"Summary: {safe_str(row['summaries'])}"
         )
 
@@ -148,7 +148,7 @@ def fetch_books():
 
             client.data_object.create(
                 data_object=book_dict,
-                class_name="Book",
+                class_name="Book2",
                 vector=embedding  # REQUIRED for WCS
             )
             print(f"Book number {i} added.")
@@ -158,7 +158,7 @@ def fetch_books():
             print("Embedding text length:", len(embedding_text))
             print("Embedding text preview:", embedding_text[:300])
         
-        if i == 1000:
+        if i == 5000:
             break
 
     print(f"Finished fetching books and pushing to Weaviate!")
