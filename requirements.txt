@@ -1,0 +1,7 @@
+pandas
+requests
+weaviate-client>=3.26.7,<4.0.0
+python-dotenv
+langchain-ollama
+langchain-core
+pydantic
