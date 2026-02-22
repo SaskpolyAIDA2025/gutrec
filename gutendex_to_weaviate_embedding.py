@@ -1,26 +1,17 @@
 import pandas as pd
 import requests
-import argparse
 import weaviate
-from weaviate.auth import AuthApiKey
-import os
 import ast
 import math
 import re
 
 # -----------------------
-# Weaviate Cloud credentials
-# -----------------------
-WEAVIATE_URL = "https://cywukygmt0k0kyk3dzng.c0.asia-southeast1.gcp.weaviate.cloud"
-WEAVIATE_API_KEY = "cXBHd2Z2Zm56NlE3S2xkUF90Y2xIRWF0aXNWdk9Wa29DLzQ1UjRnOGt1Q29ZWnlNY1RhRldpOFNWQXFRPV92MjAw"
-
-# -----------------------
 # Connect to Weaviate
 # -----------------------
+
 client = weaviate.Client(
-    url=WEAVIATE_URL,
-    auth_client_secret=AuthApiKey(api_key=WEAVIATE_API_KEY),
-    )
+    url="http://localhost:8080",
+)
 
 # Test connection
 if client.is_ready():
@@ -28,13 +19,13 @@ if client.is_ready():
 else:
     raise Exception("Could not connect to Weaviate")
 
-client.schema.delete_class("Book2")
+client.schema.delete_class("Book")
 
 # -----------------------
 # Define Book schema
 # -----------------------
-book2_class = {
-    "class": "Book2",
+book_class = {
+    "class": "Book",
     "description": "A book from Project Gutenberg",
     "vectorizer": "none",
     "properties": [
@@ -61,7 +52,7 @@ except Exception:
     existing_classes = []
 
 if "Book" not in existing_classes:
-    client.schema.create_class(book2_class)
+    client.schema.create_class(book_class)
     print("Book class created")
 else:
     print("Book class already exists")
@@ -148,7 +139,7 @@ def fetch_books():
 
             client.data_object.create(
                 data_object=book_dict,
-                class_name="Book2",
+                class_name="Book",
                 vector=embedding  # REQUIRED for WCS
             )
             print(f"Book number {i} added.")

@@ -1,22 +1,15 @@
 import weaviate
-from weaviate.auth import AuthApiKey
 
 import requests
 import json
 
 # -----------------------
-# Weaviate Cloud credentials
-# -----------------------
-WEAVIATE_URL = "https://cywukygmt0k0kyk3dzng.c0.asia-southeast1.gcp.weaviate.cloud"
-WEAVIATE_API_KEY = "cXBHd2Z2Zm56NlE3S2xkUF90Y2xIRWF0aXNWdk9Wa29DLzQ1UjRnOGt1Q29ZWnlNY1RhRldpOFNWQXFRPV92MjAw"
-
-# -----------------------
 # Connect to Weaviate
 # -----------------------
+
 client = weaviate.Client(
-    url=WEAVIATE_URL,
-    auth_client_secret=AuthApiKey(api_key=WEAVIATE_API_KEY),
-    )
+    url="http://localhost:8080",
+)
 
 if not client.is_ready():
     raise Exception("Could not connect to Weaviate Cloud")
@@ -48,7 +41,7 @@ def semantic_search(query_text: str, k: int = 5):
     result = (
         client.query
         .get(
-            "Book2",
+            "Book",
             ["title", "authors", "bookshelves", "subjects", "download_count", "summaries"]
         )
         .with_near_vector({"vector": embedding})
