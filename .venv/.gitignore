@@ -1,2 +1,8 @@
+# --- csv files ---
+books.metadata.csv
+processed_books.csv
+processed_books.zip
+# --- Virtual environment ---
+.venv/
 # --- Environment variables ---
 .env
