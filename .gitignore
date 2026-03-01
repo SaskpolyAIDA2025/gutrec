@@ -1,1 +1,4 @@
 books_metadata.csv
+.venv/
+processed_books.csv
+.env
