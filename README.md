@@ -8,7 +8,8 @@ Capstone Project for AIDA 2025: Angie, Eladio and KNK
 ## Overview
 This platform provides an end‑to‑end pipeline for transforming raw Project Gutenberg metadata into a fully searchable, vector‑powered discovery system. It integrates:
 
-- Data preprocessing
+- Data fetching from the Gutendex API  
+- Metadata preprocessing 
 - Local embedding generation using Ollama
 - Vector storage and semantic search using Weaviate
 - Structured LLM extraction for book identification
@@ -20,7 +21,8 @@ The system is designed to run entirely on local infrastructure, ensuring privacy
 ---
 
 ## Features
-- Clean and normalize raw Gutendex metadata  
+- Fetch raw metadata from the **Gutendex API**  
+- Clean and normalize metadata (languages, subjects, bookshelves) 
 - Generate high‑quality embeddings using **mxbai‑embed‑large** (Ollama)  
 - Store vectorized book objects in **Weaviate**  
 - Perform semantic search using near‑vector queries  
@@ -32,7 +34,8 @@ The system is designed to run entirely on local infrastructure, ensuring privacy
 
 ## Data Flow Diagram
             ┌──────────────────────────┐
-            │  books_metadata.csv       │
+            │   fetch_books.py          │
+            │   (Gutendex API → CSV)    │
             └──────────────┬───────────┘
                            │
                            ▼
@@ -70,6 +73,7 @@ The system is designed to run entirely on local infrastructure, ensuring privacy
 ## Architecture
 
 ### Components
+- **Data fetching**: `fetch_books.py`
 - **Preprocessing**: `dataset_process.py`  
 - **Embedding + ingestion**: `gutenindex_to_weaviate_embedding.py`  
 - **Semantic search**: `search_query.py`  
@@ -135,15 +139,21 @@ GOOGLE_BOOKS_API_KEY=your_key_here
 
 ## Usage
 
-### Step 1 - Preprocess the dataset
+### Step 1 - Fetch raw metadata from Gutendex
+python fetch_books.py --pages 50
+
+Outputs: books_metadata.csv
+(Use --pages to limit API calls; omit to fetch all pages.)
+
+### Step 2 - Preprocess the dataset
 python dataset_process.py
 
 Outputs: processed_books.csv
 
-### Step 2 - Ingest into Weaviate
+### Step 3 - Ingest into Weaviate
 python gutenindex_to_weaviate_embedding.py
 
-### Step 3 - Run the chatbot
+### Step 4 - Run the chatbot
 python run_chat.py
 
 Example interaction:
@@ -164,6 +174,7 @@ project/
 │   ├── search_query.py
 │   └── __pycache__/
 │
+├── fetch_books.py
 ├── gutenindex_to_weaviate_embedding.py
 ├── dataset_process.py
 ├── books_metadata.csv
