@@ -32,7 +32,7 @@ def embed_query(text: str):
 # Semantic search function
 # -----------------------
 def semantic_search(query_text: str, k: int = 5):
-    print(f"\nSearching for:\n {query_text}")
+    #print(f"\nSearching for:\n {query_text}")
 
     # 1. Embed the query using Ollama
     embedding = embed_query(query_text)
@@ -50,8 +50,28 @@ def semantic_search(query_text: str, k: int = 5):
         .do()
     )
 
-    print("\nResults:")
-    print(json.dumps(result, indent=2))
+    hits = result.get("data", {}).get("Get", {}).get("Book", [])
+
+    if not hits:
+        print("Chatbot: I couldn't find any similar books.\n")
+        return
+
+    print("\n=== Semantic Search Results ===")
+    for i, book in enumerate(hits, start=1):
+        print(f"\n--- Result {i} ---")
+        print(f"Title: {book.get('title', 'N/A')}")
+        print(f"Authors: {book.get('authors', 'N/A')}")
+        print(f"Bookshelves: {book.get('bookshelves', 'N/A')}")
+        print(f"Subjects: {book.get('subjects', 'N/A')}")
+        print(f"Download Count: {book.get('download_count', 'N/A')}")
+        print(f"Summary: {book.get('summaries', 'N/A')}")
+        print(f"Certainty: {book.get('_additional', {}).get('certainty', 'N/A'):.4f}")
+
+    print("\n===============================\n")
+
+
+    # print("\nResults:")
+    # print(json.dumps(result, indent=2))
 
 # -----------------------
 # Run a test query
