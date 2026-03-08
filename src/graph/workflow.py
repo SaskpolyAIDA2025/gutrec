@@ -1,18 +1,26 @@
 from langgraph.graph import StateGraph, START, END
 from .state import AgentState
-from .nodes import extraction_node, enrichment_node, search_node, clarification_node, responder_node
+from .nodes import extraction_node, enrichment_node, search_node, clarification_node, responder_node, broad_idea_node
 
 # Define routing logic
 def should_continue(state: AgentState):
-    if not state["extraction"]["title"]:
+    title = state["extraction"].get("title", "")
+    loops = state.get("loop_count", 0)
+
+    if title:  
+        return "enrich"
+
+    if loops < 3:
         return "clarify"
-    return "enrich"
+    
+    return "broad"
 
 workflow = StateGraph(AgentState)
 
 # Add our Nodes
 workflow.add_node("extract", extraction_node)
 workflow.add_node("clarify", clarification_node)
+workflow.add_node("broad", broad_idea_node)
 workflow.add_node("enrich", enrichment_node)
 workflow.add_node("search", search_node)
 workflow.add_node("respond", responder_node)
@@ -21,9 +29,11 @@ workflow.add_node("respond", responder_node)
 workflow.add_edge(START, "extract")
 workflow.add_conditional_edges("extract", should_continue, {
     "clarify": "clarify",
-    "enrich": "enrich"
+    "enrich": "enrich",
+    "broad": "broad"
 })
-workflow.add_edge("clarify", END) # Wait for user to answer
+workflow.add_edge("clarify", END)
+workflow.add_edge("broad", "search")
 workflow.add_edge("enrich", "search")
 workflow.add_edge("search", "respond")
 workflow.add_edge("respond", END)

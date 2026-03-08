@@ -1,6 +1,6 @@
 from langchain_core.messages import AIMessage, HumanMessage
 from src.graph.state import AgentState
-from src.llm_chain import structured_chain, chat_chain
+from src.llm_chain import structured_chain, chat_chain, broad_idea_prompt
 from src.books_api import get_book_metadata
 from src.search_query import semantic_search
 from src.llm_chain import llm
@@ -10,47 +10,104 @@ def extraction_node(state: AgentState):
     user_input = state["messages"][-1].content
     
     res = structured_chain.invoke({"user_input": user_input})
-    return {"extraction": res.dict()}
+    data = res.dict()
+    
+    if data.get("title"):
+        return {
+            "extraction": data,
+            "messages": [
+                AIMessage(content=f"Great, I found the title: **{data['title']}**.")
+            ]
+        }
+
+    return {"extraction": data}
 
 def clarification_node(state: AgentState):
     user_input = state["messages"][-1].content
     response = chat_chain.invoke({"user_input": user_input})
-    return {"messages": [response]}
+    return {
+        "messages": [AIMessage(content=response.content)],
+        "loop_count": state["loop_count"] + 1
+    }
+
+def broad_idea_node(state: AgentState):
+    # Combine all user messages into one text block
+    user_messages = [
+        m.content for m in state["messages"] if isinstance(m, HumanMessage)
+    ]
+    conversation_text = "\n".join(user_messages)
+
+    summary = llm.invoke(
+        broad_idea_prompt.format(conversation=conversation_text)
+    )
+
+    return {
+        "broad_query": summary.content,
+        "messages": [
+            AIMessage(
+                content=(
+                    "I couldn't identify a specific title, but based on what you described, "
+                    "here's the type of book you're looking for:\n\n"
+                    f"**{summary.content}**\n\n"
+                    "I'll search for books that match this description."
+                )
+            )
+        ]
+    }
 
 def enrichment_node(state: AgentState):
     ext = state["extraction"]
     meta = get_book_metadata(ext["title"], ext.get("author"))
-    return {"book_metadata": meta or {}}
+
+    if not meta:
+        return {
+            "book_metadata": {},
+            "messages": [
+                AIMessage(content="I couldn't find metadata for that book, but I'll still try searching.")
+            ]
+        }
+
+    return {
+        "book_metadata": meta,
+        "messages": [AIMessage(content=f"Found metadata for **{ext['title']}**. Searching for similar books...")
+        ]
+    }
 
 def search_node(state: AgentState):
-    # We use the description from Google Books as the query for Weaviate
-    query_text = state["book_metadata"].get("description") or state["extraction"]["title"]
+    if "broad_query" in state and state["broad_query"]:
+        # We use the summary of  what user has mentioned
+        query_text = state["broad_query"]
+    else:
+        # We use the description from Google Books as the query for Weaviate
+        query_text = state["book_metadata"].get("description") or state["extraction"]["title"]
+
     hits = semantic_search(query_text)
-    
-    return {"results": hits}
+    return {
+        "results": hits,
+        "loop_count": 0
+    }
+
 
 def responder_node(state: AgentState):
     results = state.get("results", [])
     
     if not results:
         return {"messages": [AIMessage(content="I couldn't find any matches in the Gutenberg library.")]}
-
-    # Format the results into a string for the LLM to see
-    # context = "\n".join([f"- {b['title']} by {b['authors']}: {b['summaries'][:200]}..." for b in results])
     
-    # response = llm.invoke(f"The user is looking for a book. Based on these search results, recommend the best matches:\n{context}")
+    # Build a readable summary
+    summary = "\n".join(
+        f"- **{b.get('title', 'N/A')}** by {b.get('authors', 'N/A')} (certainty {b.get('certainty', 'N/A')})"
+        for b in results
+    )
 
-    print("\n=== Semantic Search Results ===")
-    for i, book in enumerate(results, start=1):
-        print(f"\n--- Result {i} ---")
-        print(f"Title: {book.get('title', 'N/A')}")
-        print(f"Authors: {book.get('authors', 'N/A')}")
-        print(f"Bookshelves: {book.get('bookshelves', 'N/A')}")
-        print(f"Subjects: {book.get('subjects', 'N/A')}")
-        print(f"Download Count: {book.get('download_count', 'N/A')}")
-        print(f"Summary: {book.get('summaries', 'N/A')}")
-        print(f"Certainty: {book.get('certainty', 'N/A')}")
-
-    print("\n===============================\n")
-    
-    return {"messages": [AIMessage(content="I could find some matches in the Gutenberg library.")]}
+    return {
+        "messages": [
+            AIMessage(
+                content=(
+                    "Here are some books I found that might interest you:\n\n"
+                    f"{summary}\n\n"
+                    "Let me know if you'd a recommendation related with another book."
+                )
+            )
+        ]
+    }

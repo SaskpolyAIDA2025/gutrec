@@ -12,10 +12,6 @@ client = weaviate.connect_to_local(
     grpc_port=50051,
 )
 
-#client = weaviate.Client(
-#    url="http://localhost:8080",
-#)
-
 if not client.is_ready():
     raise Exception("Could not connect to Weaviate Cloud")
 
@@ -55,20 +51,6 @@ def semantic_search(query_text: str, k: int = 5):
         return_metadata=["distance", "certainty"]
     )
 
-    # result = (
-    #     client.query
-    #     .get(
-    #         "Book",
-    #         ["title", "authors", "bookshelves", "subjects", "download_count", "summaries"]
-    #     )
-    #     .with_near_vector({"vector": embedding})
-    #     .with_limit(k)
-    #     .with_additional(["certainty"])
-    #     .do()
-    # )
-
-    # hits = result.get("data", {}).get("Get", {}).get("Book", [])
-
     hits = []
     for obj in result.objects:
         hits.append({
@@ -81,7 +63,7 @@ def semantic_search(query_text: str, k: int = 5):
             "certainty": obj.metadata.certainty,
         })
 
-    # Return the data instead of just printing it
+    # Return the data
     return hits
 
 

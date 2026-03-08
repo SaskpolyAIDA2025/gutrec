@@ -8,5 +8,6 @@ class AgentState(TypedDict):
     messages: Annotated[list, add_messages]
     extraction: dict         # Stores our BookQuery result
     book_metadata: dict      # Stores Google Books data
-    results: list     # Final Weaviate results
+    results: list            # Final Weaviate results
     loop_count: int          # Counter to close the loop after a number of attempts
+    broad_query: str         # Description of user search when no book mentioned
