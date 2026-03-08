@@ -1,5 +1,12 @@
+# CSV files
 books_metadata.csv
-.venv/
 processed_books.csv
+
+# Virtual environment
+.venv/
+
+# Environment variables
 .env
+
+# Cache
 src/__pycache__
