@@ -46,4 +46,5 @@ def get_book_metadata(title: str, author: str | None = None) -> dict | None:
         "pageCount": volume_info.get("pageCount"),
         "description": volume_info.get("description"),
     }
+    
     return metadata

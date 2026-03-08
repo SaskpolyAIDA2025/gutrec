@@ -1,7 +1,19 @@
 from langchain_ollama import ChatOllama
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
-from schemas import BookQuery
+from src.schemas import BookQuery
+
+# Close Ollama Function
+def close_ollama():
+    try:
+        structured_chain.client.close()
+    except:
+        pass
+
+    try:
+        chat_chain.client.close()
+    except:
+        pass
 
 # LLM
 llm = ChatOllama(model="gemma3:4b", temperature=0.2)

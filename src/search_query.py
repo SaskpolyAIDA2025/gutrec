@@ -7,14 +7,25 @@ import json
 # Connect to Weaviate
 # -----------------------
 
-client = weaviate.Client(
-    url="http://localhost:8080",
+client = weaviate.connect_to_local(
+    port=8080,
+    grpc_port=50051,
 )
+
+#client = weaviate.Client(
+#    url="http://localhost:8080",
+#)
 
 if not client.is_ready():
     raise Exception("Could not connect to Weaviate Cloud")
 
 print("Connected to Weaviate Cloud")
+
+# -----------------------
+# Close Weaviate function
+# -----------------------
+def close_weaviate():
+    client.close()
 
 # -----------------------
 # Ollama embedding function
@@ -32,46 +43,47 @@ def embed_query(text: str):
 # Semantic search function
 # -----------------------
 def semantic_search(query_text: str, k: int = 5):
-    #print(f"\nSearching for:\n {query_text}")
-
     # 1. Embed the query using Ollama
     embedding = embed_query(query_text)
 
     # 2. Query Weaviate using nearVector
-    result = (
-        client.query
-        .get(
-            "Book",
-            ["title", "authors", "bookshelves", "subjects", "download_count", "summaries"]
-        )
-        .with_near_vector({"vector": embedding})
-        .with_limit(k)
-        .with_additional(["certainty"])
-        .do()
+    collection = client.collections.get("Book")
+
+    result = collection.query.near_vector(
+        near_vector=embedding,
+        limit=k,
+        return_metadata=["distance", "certainty"]
     )
 
-    hits = result.get("data", {}).get("Get", {}).get("Book", [])
+    # result = (
+    #     client.query
+    #     .get(
+    #         "Book",
+    #         ["title", "authors", "bookshelves", "subjects", "download_count", "summaries"]
+    #     )
+    #     .with_near_vector({"vector": embedding})
+    #     .with_limit(k)
+    #     .with_additional(["certainty"])
+    #     .do()
+    # )
 
-    if not hits:
-        print("Chatbot: I couldn't find any similar books.\n")
-        return
+    # hits = result.get("data", {}).get("Get", {}).get("Book", [])
 
-    print("\n=== Semantic Search Results ===")
-    for i, book in enumerate(hits, start=1):
-        print(f"\n--- Result {i} ---")
-        print(f"Title: {book.get('title', 'N/A')}")
-        print(f"Authors: {book.get('authors', 'N/A')}")
-        print(f"Bookshelves: {book.get('bookshelves', 'N/A')}")
-        print(f"Subjects: {book.get('subjects', 'N/A')}")
-        print(f"Download Count: {book.get('download_count', 'N/A')}")
-        print(f"Summary: {book.get('summaries', 'N/A')}")
-        print(f"Certainty: {book.get('_additional', {}).get('certainty', 'N/A'):.4f}")
+    hits = []
+    for obj in result.objects:
+        hits.append({
+            "title": obj.properties.get("title"),
+            "authors": obj.properties.get("authors"),
+            "bookshelves": obj.properties.get("bookshelves"),
+            "subjects": obj.properties.get("subjects"),
+            "download_count": obj.properties.get("download_count"),
+            "summaries": obj.properties.get("summaries"),
+            "certainty": obj.metadata.certainty,
+        })
 
-    print("\n===============================\n")
+    # Return the data instead of just printing it
+    return hits
 
-
-    # print("\nResults:")
-    # print(json.dumps(result, indent=2))
 
 # -----------------------
 # Run a test query
