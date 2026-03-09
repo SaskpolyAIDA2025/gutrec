@@ -10,3 +10,5 @@ processed_books.csv
 
 # Cache
 src/__pycache__
+__pycache__/
+*.pyc
