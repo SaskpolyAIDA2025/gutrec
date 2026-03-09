@@ -10,7 +10,7 @@ def should_continue(state: AgentState):
     if title:  
         return "enrich"
 
-    if loops < 3:
+    if loops < 2:
         return "clarify"
     
     return "broad"
