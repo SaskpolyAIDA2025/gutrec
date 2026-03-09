@@ -3,4 +3,4 @@ books_metadata.csv
 processed_books.csv
 .env
 src/__pycache__
-weaviate-local
+weaviate-local/
