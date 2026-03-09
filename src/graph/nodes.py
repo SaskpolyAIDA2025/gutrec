@@ -10,7 +10,7 @@ def extraction_node(state: AgentState):
     user_input = state["messages"][-1].content
     
     res = structured_chain.invoke({"user_input": user_input})
-    data = res.dict()
+    data = res.model_dump()
     
     if data.get("title"):
         return {
