@@ -11,3 +11,4 @@ class AgentState(TypedDict):
     results: list            # Final Weaviate results
     loop_count: int          # Counter to close the loop after a number of attempts
     broad_query: str         # Description of user search when no book mentioned
+    reset_messages: bool     # Indicator to reset messages after complete a search

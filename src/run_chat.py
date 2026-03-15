@@ -11,7 +11,8 @@ warnings.filterwarnings("ignore", category=ResourceWarning)
 def main():
     state = {
         "messages": [],
-        "loop_count": 0
+        "loop_count": 0,
+        "reset_messages": False
     }
 
     print("Welcome to the Gutenberg Book Recommendation system.\nGive me a title and author as reference to look for one similar to it.\nType 'exit' to quit.")
@@ -20,6 +21,12 @@ def main():
         user_text = input("\nYou: ")
         if user_text.lower() in ["exit", "quit"]:
             break
+
+        # Reset history "messages" and "loop_count" after a response was given
+        if state["reset_messages"]:
+            state["messages"] = []
+            state["reset_messages"] = False
+            state["loop_count"] = 0
 
         # Add user message to state
         state["messages"].append(HumanMessage(content=user_text))

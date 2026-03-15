@@ -84,7 +84,6 @@ def search_node(state: AgentState):
     hits = semantic_search(query_text)
     return {
         "results": hits,
-        "loop_count": 0
     }
 
 
@@ -109,5 +108,6 @@ def responder_node(state: AgentState):
                     "Let me know if you'd a recommendation related with another book."
                 )
             )
-        ]
+        ],
+        "reset_messages": True
     }
