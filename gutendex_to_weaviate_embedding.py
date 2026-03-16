@@ -10,7 +10,7 @@ import re
 # -----------------------
 
 client = weaviate.Client(
-    url="http://localhost:8080",
+    url="http://localhost:8081",
 )
 
 # Test connection

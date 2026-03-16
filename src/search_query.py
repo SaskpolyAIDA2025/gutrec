@@ -8,7 +8,7 @@ import json
 # -----------------------
 
 client = weaviate.Client(
-    url="http://localhost:8080",
+    url="http://localhost:8081",
 )
 
 if not client.is_ready():
@@ -32,12 +32,7 @@ def embed_query(text: str):
 # Semantic search function
 # -----------------------
 def semantic_search(query_text: str, k: int = 5):
-    print(f"\nSearching for:\n {query_text}")
-
-    # 1. Embed the query using Ollama
     embedding = embed_query(query_text)
-
-    # 2. Query Weaviate using nearVector
     result = (
         client.query
         .get(
@@ -50,8 +45,9 @@ def semantic_search(query_text: str, k: int = 5):
         .do()
     )
 
-    print("\nResults:")
-    print(json.dumps(result, indent=2))
+    books = result["data"]["Get"]["Book"]
+
+    return books
 
 # -----------------------
 # Run a test query
