@@ -3,6 +3,7 @@ from src.graph.state import AgentState
 from src.llm_chain import structured_chain, chat_chain, broad_idea_prompt
 from src.books_api import get_book_metadata
 from src.search_query import semantic_search
+from src.utils.book_downloader import get_gutenberg_id
 from src.llm_chain import llm
 
 # 2. Define the Nodes
@@ -95,8 +96,8 @@ def responder_node(state: AgentState):
     
     # Build a readable summary
     summary = "\n".join(
-        f"- **{b.get('title', 'N/A')}** by {b.get('authors', 'N/A')} (certainty {b.get('certainty', 'N/A')})"
-        for b in results
+        f"{i}.- **{b.get('title', 'N/A')}** by {b.get('authors', 'N/A')} (certainty {b.get('certainty', 'N/A')})"
+        for i, b in enumerate(results, start=1)
     )
 
     return {
@@ -105,9 +106,41 @@ def responder_node(state: AgentState):
                 content=(
                     "Here are some books I found that might interest you:\n\n"
                     f"{summary}\n\n"
-                    "Let me know if you'd a recommendation related with another book."
+                    f"If you want to see a summary by chapter of one of those books write its number (1-{len(results)}), or write X to continue with a different book reference."
                 )
             )
         ],
-        "reset_messages": True
+        "reset_messages": True,
     }
+
+
+def confirmation_node(state: AgentState):
+    results = state.get("results", [])
+
+    user_text = input("\nYou: ")
+    i = int(user_text)
+    
+    if i > 0 and i < len(results) + 1:
+        book_id = get_gutenberg_id(results[i - 1].get('title', 'N/A'))
+        
+        return {
+            "messages": [
+                AIMessage(
+                    content=(
+                        "Preparing chapter-by-chapter summaries of this book...\n\n"
+                    )
+                )
+            ],
+            "book_id": book_id
+        }
+    else:
+        return {
+            "messages": [
+                AIMessage(
+                    content=(
+                        "Ok. Let's try a recommendation related with another book.\nGive me a title and author as reference to look for one similar to it.\nType 'exit' to quit."
+                    )
+                )
+            ],
+            "book_id": None
+        }

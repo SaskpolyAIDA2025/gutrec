@@ -12,3 +12,9 @@ class AgentState(TypedDict):
     loop_count: int          # Counter to close the loop after a number of attempts
     broad_query: str         # Description of user search when no book mentioned
     reset_messages: bool     # Indicator to reset messages after complete a search
+    book_id: int             # ID in Project Gutenberg of selected book
+    chapter_number: int      # Number of selected chapter
+    chapter_title: str       # Title of selected chapter
+    total_chapters: int      # Number of chapters in the selected book
+    error: str               # Error message
+    summaries: List          # List of summaries of chapters
