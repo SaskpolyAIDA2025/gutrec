@@ -4,3 +4,9 @@ processed_books.csv
 .env
 src/__pycache__
 weaviate-local/
+
+# Ignore Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
