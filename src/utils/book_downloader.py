@@ -64,7 +64,7 @@ def extract_toc(text):
     end_idx = start_idx + next_heading.start() if next_heading else len(text)
 
     toc_block = text[start_idx:end_idx]
-    entries = TOC_ENTRY_PATTERN.findall(toc_block)
+    entries = toc_start.findall(toc_block)
 
     return entries if entries else None
 

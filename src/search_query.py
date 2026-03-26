@@ -79,3 +79,5 @@ if __name__ == "__main__":
     #semantic_search("a story about adventure in the sea", k=10)
     #semantic_search("a book of algebra and mathematics", k=10)
     semantic_search("books about existential dread in industrial cities", k=5)
+
+    close_weaviate()

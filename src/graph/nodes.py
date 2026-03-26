@@ -106,7 +106,7 @@ def responder_node(state: AgentState):
                 content=(
                     "Here are some books I found that might interest you:\n\n"
                     f"{summary}\n\n"
-                    f"If you want to see a summary by chapter of one of those books write its number (1-{len(results)}), or write X to continue with a different book reference."
+                    f"If you want to see a summary by chapter of one of those books write its number (1-{len(results)}), or write 0 to continue with a different book reference."
                 )
             )
         ],
