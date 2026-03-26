@@ -1,48 +1,69 @@
-from llm_chain import chat_chain, structured_chain
-from books_api import get_book_metadata
-from search_query import semantic_search
-from pydantic import ValidationError
+from langchain_core.messages import HumanMessage
+
+from .graph.workflow import app
+from src.search_query import close_weaviate
+from src.llm_chain import close_ollama
+
+import warnings
+
+warnings.filterwarnings("ignore", category=ResourceWarning)
 
 def main():
-    print("Chatbot: Tell me the title of your reference book and, if possible, its author.")
+    state = {
+        "messages": [],
+        "loop_count": 0,
+        "reset_messages": False
+    }
+
+    print("Welcome to the Gutenberg Book Recommendation system.\nGive me a title and author as reference to look for one similar to it.\nType 'exit' to quit.")
 
     while True:
-        user_input = input("You: ").strip()
-
-        if user_input.lower() in {"exit", "quit"}:
-            print("Chatbot: Goodbye!")
+        user_text = input("\nYou: ")
+        if user_text.lower() in ["exit", "quit"]:
             break
 
-        # First try structured extraction
-        try:
-            result = structured_chain.invoke({"user_input": user_input})
+        # Reset history "messages" and "loop_count" after a response was given
+        if state["reset_messages"]:
+            state["messages"] = []
+            state["reset_messages"] = False
+            state["loop_count"] = 0
 
-            # If parsing succeeded, we have a BookQuery object
-            title = result.title
-            author = result.author
+        # Add user message to state
+        state["messages"].append(HumanMessage(content=user_text))
 
-            print(f"\nChatbot: Searching Google Books for '{title}'...\n")
-            metadata = get_book_metadata(title, author)
+        # Reset per-turn fields
+        state["broad_query"] = ""
 
-            if not metadata:
-                print("Chatbot: I couldn't find that book.")
-            else:
-                print("=== Book Metadata ===")
-                for k, v in metadata.items():
-                    print(f"{k}: {v}")
-                print("======================\n")
+        # Run the graph
+        for event in app.stream(state):
+            for node, value in event.items():
+                print(f"--- Finished Node: {node} ---")
+                
+                # Skip if the node returned None
+                if not value:
+                    continue
 
-            #print(f"\n{metadata}\n")
-            semantic_search(f"Title: {metadata['title']}\nAuthor: {metadata['authors']}\nSummary: {metadata['description']}")
-            
-            print("Chatbot: You can describe another book or type 'exit'.")
-            continue
+                # Merge ALL returned fields into state
+                for key, val in value.items():
+                    # Only print messages if they exist
+                    if key == "messages":
+                        if val:
+                            ai_msg = val[-1]
+                            print(f"AI: {ai_msg.content}")
+                            # Append messages to history
+                            state["messages"].append(ai_msg)
+                    else:
+                        # Store any other state updates (loop_count, extraction, etc.)
+                        state[key] = val
 
-        except ValidationError:
-            # Not enough info yet → continue conversation
-            reply = chat_chain.invoke({"user_input": user_input})
-            print(f"Chatbot: {reply}")
-            continue
+        # Reset extraction-related fields so next turn starts clean
+        state.pop("extraction", None)
+        state.pop("book_metadata", None)
+        state.pop("results", None)
+
+    # Clean shutdown
+    close_weaviate()
+    close_ollama()
 
 
 if __name__ == "__main__":

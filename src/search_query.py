@@ -7,14 +7,21 @@ import json
 # Connect to Weaviate
 # -----------------------
 
-client = weaviate.Client(
-    url="http://localhost:8080",
+client = weaviate.connect_to_local(
+    port=8080,
+    grpc_port=50051,
 )
 
 if not client.is_ready():
     raise Exception("Could not connect to Weaviate Cloud")
 
 print("Connected to Weaviate Cloud")
+
+# -----------------------
+# Close Weaviate function
+# -----------------------
+def close_weaviate():
+    client.close()
 
 # -----------------------
 # Ollama embedding function
@@ -32,26 +39,33 @@ def embed_query(text: str):
 # Semantic search function
 # -----------------------
 def semantic_search(query_text: str, k: int = 5):
-    print(f"\nSearching for:\n {query_text}")
-
     # 1. Embed the query using Ollama
     embedding = embed_query(query_text)
 
     # 2. Query Weaviate using nearVector
-    result = (
-        client.query
-        .get(
-            "Book",
-            ["title", "authors", "bookshelves", "subjects", "download_count", "summaries"]
-        )
-        .with_near_vector({"vector": embedding})
-        .with_limit(k)
-        .with_additional(["certainty"])
-        .do()
+    collection = client.collections.get("Book")
+
+    result = collection.query.near_vector(
+        near_vector=embedding,
+        limit=k,
+        return_metadata=["distance", "certainty"]
     )
 
-    print("\nResults:")
-    print(json.dumps(result, indent=2))
+    hits = []
+    for obj in result.objects:
+        hits.append({
+            "title": obj.properties.get("title"),
+            "authors": obj.properties.get("authors"),
+            "bookshelves": obj.properties.get("bookshelves"),
+            "subjects": obj.properties.get("subjects"),
+            "download_count": obj.properties.get("download_count"),
+            "summaries": obj.properties.get("summaries"),
+            "certainty": obj.metadata.certainty,
+        })
+
+    # Return the data
+    return hits
+
 
 # -----------------------
 # Run a test query
@@ -65,3 +79,5 @@ if __name__ == "__main__":
     #semantic_search("a story about adventure in the sea", k=10)
     #semantic_search("a book of algebra and mathematics", k=10)
     semantic_search("books about existential dread in industrial cities", k=5)
+
+    close_weaviate()
