@@ -30,15 +30,32 @@ def strip_gutenberg(text):
 clean_text = strip_gutenberg(raw_text)
 
 # ---------------------------------------------------------
-# 3. Split into paragraphs
+# 3. Split into chapters
 # ---------------------------------------------------------
-paragraphs = chunk_text(clean_text)
-#paragraphs = [p.strip() for p in clean_text.split("\n\n") if len(p.strip()) > 0]
+chapters = split_into_chapters(clean_text)
+
+# ---------------------------------------------------------
+# 4. Split into paragraphs
+# ---------------------------------------------------------
+chapter_boundaries = []
+paragraphs = []
+current_index = 0
+
+for ch in chapters:
+    # Count paragraphs in this chapter
+    ch_paragraphs = chunk_text(ch["content"])
+    paragraphs.extend(ch_paragraphs)
+    chapter_boundaries.append({
+        "title": ch["title"],
+        "start_index": current_index
+    })
+    current_index += len(ch_paragraphs)
+
 
 print(f"Total paragraphs: {len(paragraphs)}")
 
 # ---------------------------------------------------------
-# 4. Sentiment analysis per paragraph
+# 5. Sentiment analysis per paragraph
 # ---------------------------------------------------------
 sia = SentimentIntensityAnalyzer()
 
@@ -48,7 +65,7 @@ for p in paragraphs:
     sentiments.append(score)
 
 # ---------------------------------------------------------
-# 5. Smooth the sentiment curve
+# 6. Smooth the sentiment curve
 # ---------------------------------------------------------
 def smooth(values, window=5):
     return np.convolve(values, np.ones(window)/window, mode='same')
@@ -56,12 +73,19 @@ def smooth(values, window=5):
 smoothed = smooth(sentiments, window=7)
 
 # ---------------------------------------------------------
-# 6. Plot the emotional arc
+# 7. Plot the emotional arc
 # ---------------------------------------------------------
 plt.figure(figsize=(14, 6))
 plt.plot(sentiments, alpha=0.3, label="Raw sentiment", color="gray")
 plt.plot(smoothed, label="Smoothed sentiment", color="blue", linewidth=2)
-plt.title("Sentiment Arc of the Book (Paragraph-Level)")
+
+# Add chapter boundaries
+for ch in chapter_boundaries:
+    x = ch["start_index"]
+    plt.axvline(x=x, color="red", linestyle="--", alpha=0.4)
+    plt.text(x, 1.05, ch["title"], rotation=90, fontsize=8, color="red")
+
+plt.title("Sentiment Arc of the Book (Paragraph-Level) with Chapter Boundaries")
 plt.xlabel("Paragraph Index")
 plt.ylabel("Sentiment Score (VADER Compound)")
 plt.legend()
