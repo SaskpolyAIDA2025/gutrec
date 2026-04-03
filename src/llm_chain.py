@@ -84,3 +84,16 @@ broad_idea_prompt = PromptTemplate(
     ),
     input_variables=["conversation"],
 )
+
+
+rag_prompt = PromptTemplate(
+    template=(
+        "You are a helpful assistant answering questions about a book.\n\n"
+        "Question:\n"
+        "{question}\n\n"
+        "Relevant context from the book:\n"
+        "{context}\n\n"
+        "Answer the question using ONLY the context above."
+    ),
+    input_variables=["question", "context"],
+)
