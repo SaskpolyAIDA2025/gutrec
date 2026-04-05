@@ -3,6 +3,14 @@ from src.graph.workflow import app
 from langchain_core.messages import AIMessage, HumanMessage
 
 
+# Navigation state
+if "ui_mode" not in st.session_state:
+    st.session_state.ui_mode = "chat"   # or "detail"
+
+if "selected_book" not in st.session_state:
+    st.session_state.selected_book = None
+
+
 # -------------------------------------------------------------------
 # Helper function
 # -------------------------------------------------------------------
@@ -30,6 +38,37 @@ def get_gutenberg_cover_url(book_id):
             pass
 
     return None
+
+
+# -------------------------------------------------------------------
+# Custom CSS for hover effects on title buttons
+# -------------------------------------------------------------------
+st.markdown("""
+<style>
+/* Make all Streamlit buttons look like clean text links */
+div.stButton > button {
+    background-color: transparent;
+    color: #1f6feb;
+    border: none;
+    padding: 0;
+    font-size: 1.1rem;
+    text-align: left;
+}
+
+/* Hover effect */
+div.stButton > button:hover {
+    color: #d63384;        /* pink-ish hover color */
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+/* Remove the annoying focus outline */
+div.stButton > button:focus {
+    outline: none;
+    box-shadow: none;
+}
+</style>
+""", unsafe_allow_html=True)
 
 
 st.set_page_config(
@@ -68,7 +107,7 @@ if "graph_state" not in st.session_state:
 state = st.session_state.graph_state
 
 # Layout
-left_col, main_col, right_col = st.columns([1, 2, 1])
+left_col, main_col, right_col = st.columns([1, 2, 2])
 
 # -------------------------------------------------------------------
 # 3. Clear Chat button
@@ -84,6 +123,53 @@ with left_col:
             "results": []
         }
         state = st.session_state.graph_state
+
+
+######################################################
+# -------------------------------------------------------------------
+# DETAIL PAGE (if a book was clicked)
+# -------------------------------------------------------------------
+if st.session_state.ui_mode == "detail":
+    book = st.session_state.selected_book
+
+    st.title(book.get("title", "Untitled"))
+
+    # Cover
+    cover_url = None
+    if book.get("id_pg"):
+        cover_url = get_gutenberg_cover_url(book["id_pg"])
+    if cover_url:
+        st.image(cover_url, width=300)
+
+    # Authors
+    authors = book.get("authors", "")
+    if authors:
+        st.subheader("Authors")
+        st.write(authors)
+
+    # Summary
+    summaries = book.get("summaries", "")
+    if summaries:
+        with st.expander("Summary", expanded=True):
+            st.write(summaries)
+
+    # Download buttons
+    book_id = book.get("id_pg")
+    if book_id:
+        st.subheader("Download")
+        st.markdown(f"[EPUB](https://www.gutenberg.org/ebooks/{book_id}.epub.images)")
+        st.markdown(f"[Kindle](https://www.gutenberg.org/ebooks/{book_id}.kf8.images)")
+        st.markdown(f"[Plain Text](https://www.gutenberg.org/files/{book_id}/{book_id}-0.txt)")
+
+    # Back button
+    if st.button("⬅ Back to recommendations"):
+        st.session_state.ui_mode = "chat"
+        st.session_state.selected_book = None
+        st.rerun()
+
+    st.stop()  # Prevents chat UI from rendering underneath
+######################################################
+
 
 # -------------------------------------------------------------------
 # 4. Main chat area
@@ -141,46 +227,56 @@ with right_col:
     if not results:
         st.info("No recommendations yet.")
     else:
-        for book in results:
-            with st.container(border=True):
-                # --- COVER IMAGE ---
-                cover_url = None
-                if book.get("id_pg"):
-                    cover_url = get_gutenberg_cover_url(book["id_pg"])
+        # Number of columns
+        num_cols = 2
+        cols = st.columns(num_cols)
 
-                if cover_url:
-                    st.image(cover_url, width="content") # "stretch"
-                else:
-                    st.write("*(No cover available)*")
-                
-                # Title
-                st.subheader(book.get("title", "Untitled"))
+        for idx, book in enumerate(results):
+            col = cols[idx % num_cols]  # rotate through columns
 
-                # Authors
-                authors = book.get("authors", [])
-                if authors:
-                    st.markdown(f"**Authors:** {authors}")
+            with col:
+                with st.container(border=True):
+                    # --- COVER IMAGE ---
+                    cover_url = None
+                    if book.get("id_pg"):
+                        cover_url = get_gutenberg_cover_url(book["id_pg"])
 
-                # # Subjects / Bookshelves
-                # subjects = book.get("subjects", "")
-                # if subjects:
-                #     st.markdown(f"**Subjects:** {subjects}")
+                    if cover_url:
+                        st.image(cover_url, width="content") # stretch
+                    else:
+                        st.write("*(No cover available)*")
+                    
+                    # Title (clickable)
+                    if st.button(book.get("title", "Untitled"), key=f"title_{book['id_pg']}"):
+                        st.session_state.ui_mode = "detail"
+                        st.session_state.selected_book = book
+                        st.rerun()
 
-                # shelves = book.get("bookshelves", "")
-                # if shelves:
-                #     st.markdown(f"**Bookshelves:** {shelves}")
+                    # Authors
+                    authors = book.get("authors", [])
+                    if authors:
+                        st.markdown(f"**Authors:** {authors}")
 
-                # # Download count
-                # if book.get("download_count") is not None:
-                #     st.markdown(f"**Downloads:** {book['download_count']}")
+                    # # Subjects / Bookshelves
+                    # subjects = book.get("subjects", "")
+                    # if subjects:
+                    #     st.markdown(f"**Subjects:** {subjects}")
 
-                # Summary
-                summaries = (book.get("summaries", ""))
-                if summaries:
-                    with st.expander("Summary", expanded=False):
-                        st.write(summaries)
+                    # shelves = book.get("bookshelves", "")
+                    # if shelves:
+                    #     st.markdown(f"**Bookshelves:** {shelves}")
 
-                # Certainty
-                if book.get("certainty") is not None:
-                    st.progress(book["certainty"])
-                    st.caption(f"Match certainty: {book['certainty']:.2f}")
+                    # # Download count
+                    # if book.get("download_count") is not None:
+                    #     st.markdown(f"**Downloads:** {book['download_count']}")
+
+                    # Summary
+                    summaries = (book.get("summaries", ""))
+                    if summaries:
+                        with st.expander("Summary", expanded=False):
+                            st.write(summaries)
+
+                    # Certainty
+                    if book.get("certainty") is not None:
+                        st.progress(book["certainty"])
+                        st.caption(f"Match certainty: {book['certainty']:.2f}")
