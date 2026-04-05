@@ -54,6 +54,7 @@ def semantic_search(query_text: str, k: int = 5):
     hits = []
     for obj in result.objects:
         hits.append({
+            "id_pg": obj.properties.get("id_pg"),
             "title": obj.properties.get("title"),
             "authors": obj.properties.get("authors"),
             "bookshelves": obj.properties.get("bookshelves"),

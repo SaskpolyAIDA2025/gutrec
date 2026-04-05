@@ -37,7 +37,6 @@ book_class = {
         {"name": "bookshelves", "dataType": ["text"]},
         {"name": "languages", "dataType": ["text"]},
         {"name": "copyright", "dataType": ["text"]},
-        #{"name": "media_type", "dataType": ["text"]},
         {"name": "download_count", "dataType": ["int"]},
         {"name": "summaries", "dataType": ["text"]}
     ]
