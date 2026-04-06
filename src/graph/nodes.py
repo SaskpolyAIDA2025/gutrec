@@ -97,7 +97,7 @@ def responder_node(state: AgentState):
     
     # Build a readable summary
     summary = "\n".join(
-        f"{i}.- **{b.get('title', 'N/A')}** by {b.get('authors', 'N/A')} (certainty {b.get('certainty', 'N/A')})"
+        f"{i}.- ({b.get('id_pg', 'N/A')}) **{b.get('title', 'N/A')}** by {b.get('authors', 'N/A')} (certainty {b.get('certainty', 'N/A')})\n"
         for i, b in enumerate(results, start=1)
     )
 

@@ -1,7 +1,7 @@
 from langgraph.graph import StateGraph, START, END
 from .state import AgentState
 from .nodes import extraction_node, enrichment_node, search_node, clarification_node, responder_node, broad_idea_node, confirmation_node
-from .node_chapter_summarizer import summarize_chapters_node
+# from .node_chapter_summarizer import summarize_chapters_node
 
 # Define routing logic
 def should_continue(state: AgentState):
