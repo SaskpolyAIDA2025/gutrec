@@ -1,7 +1,7 @@
 import streamlit as st
 from src.graph.workflow import app
 from src.utils.chapter_summaries import get_all_chapter_summaries
-from src.utils.sentiment_graph import build_emotion_arc_figure
+from src.utils.sentiment_graph import build_emotion_arc_data, plot_emotion_arc
 from langchain_core.messages import AIMessage, HumanMessage
 
 
@@ -43,8 +43,8 @@ def get_gutenberg_cover_url(book_id):
 
 
 @st.cache_resource
-def get_emotion_arc_fig(book_id: int):
-    return build_emotion_arc_figure(book_id)
+def cached_emotion_data(book_id: int):
+    return build_emotion_arc_data(book_id)
 
 
 # -------------------------------------------------------------------
@@ -193,12 +193,31 @@ if st.session_state.ui_mode == "detail":
     if book_id:
         st.subheader("Emotional Arc of the Book")
         with st.spinner("Computing emotional arc..."):
-            fig = get_emotion_arc_fig(int(book_id))
+            smoothed_emotions, chapter_boundaries = cached_emotion_data(int(book_id))
 
-        if fig is None:
-            st.info("Could not build emotional arc for this book.")
+        # Emotion toggles
+        st.markdown("**Select emotions to display:**")
+        col1, col2, col3, col4 = st.columns(4)
+
+        show_joy = col1.checkbox("Joy", value=True)
+        show_fear = col2.checkbox("Fear", value=True)
+        show_anger = col3.checkbox("Anger", value=True)
+        show_sadness = col4.checkbox("Sadness", value=True)
+
+        visible = []
+        if show_joy: visible.append("joy")
+        if show_fear: visible.append("fear")
+        if show_anger: visible.append("anger")
+        if show_sadness: visible.append("sadness")
+
+        if not visible:
+            st.info("Select at least one emotion to display.")
         else:
-            st.pyplot(fig)
+            fig = plot_emotion_arc(smoothed_emotions, chapter_boundaries, visible)
+            if fig is None:
+                st.info("Could not build emotional arc for this book.")
+            else:
+                st.pyplot(fig)
     else:
         st.info("No Project Gutenberg ID available for emotion graph.")
 

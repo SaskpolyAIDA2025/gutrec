@@ -34,10 +34,11 @@ def smooth(values, window=7):
     return np.convolve(values, np.ones(window)/window, mode='same')
 
 
-def build_emotion_arc_figure(book_id: int):
+def build_emotion_arc_data(book_id: int):
     """
-    Given a Gutenberg book id, returns a matplotlib Figure
-    with the multi-emotion arc of the book.
+    Returns:
+      - smoothed_emotions: dict {emotion: [values]}
+      - chapter_boundaries: list of {title, start_index}
     """
 
     # ---------------------------------------------------------
@@ -87,6 +88,14 @@ def build_emotion_arc_figure(book_id: int):
         for e in TARGET_EMOTIONS
     }
 
+    return smoothed_emotions, chapter_boundaries
+
+
+def plot_emotion_arc(smoothed_emotions, chapter_boundaries, visible_emotions):
+    """
+    Given a Gutenberg book id, returns a matplotlib Figure
+    with the multi-emotion arc of the book.
+    """
     # ---------------------------------------------------------
     # 5. Build the figure (do NOT plt.show())
     # ---------------------------------------------------------
@@ -99,7 +108,7 @@ def build_emotion_arc_figure(book_id: int):
         "sadness": "#3a7ca5"
     }
 
-    for emotion in TARGET_EMOTIONS:
+    for emotion in visible_emotions:
         y = smoothed_emotions[emotion]
         ax.plot(y, label=emotion.capitalize(), color=colors[emotion], linewidth=2.5)
         ax.fill_between(range(len(y)), y, alpha=0.08, color=colors[emotion])
