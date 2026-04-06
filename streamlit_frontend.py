@@ -139,93 +139,100 @@ with left_col:
 if st.session_state.ui_mode == "detail":
     book = st.session_state.selected_book
 
-    st.title(book.get("title", "Untitled"))
-
-    # Cover
-    cover_url = None
-    if book.get("id_pg"):
-        cover_url = get_gutenberg_cover_url(book["id_pg"])
-    if cover_url:
-        st.image(cover_url, width=300)
-
-    # Authors
-    authors = book.get("authors", "")
-    if authors:
-        st.subheader("Authors")
-        st.write(authors)
-
-    # Summary
-    summaries = book.get("summaries", "")
-    if summaries:
-        with st.expander("Summary", expanded=True):
-            st.write(summaries)
-    
-    # --- CHAPTER SUMMARIES ---
-    st.subheader("Chapters")
-
-    book_id = book.get("id_pg")
-    if book_id:
-        with st.spinner("Loading chapter summaries..."):
-            chapters, err = get_all_chapter_summaries(int(book_id))
-
-        if err:
-            st.warning(err)
-        elif not chapters:
-            st.info("No chapters detected or no summaries available.")
-        else:
-            for ch in chapters:
-                label = f"{ch['title']}"
-                with st.expander(label, expanded=False):
-                    st.write(ch["summary"])
-    else:
-        st.info("No Project Gutenberg ID available for chapter summaries.")
-
-    # Download buttons
-    book_id = book.get("id_pg")
-    if book_id:
-        st.subheader("Download")
-        st.markdown(f"[EPUB](https://www.gutenberg.org/ebooks/{book_id}.epub.images)")
-        st.markdown(f"[Kindle](https://www.gutenberg.org/ebooks/{book_id}.kf8.images)")
-        st.markdown(f"[Plain Text](https://www.gutenberg.org/files/{book_id}/{book_id}-0.txt)")
-
-    # --- EMOTION ARC ---
-    book_id = book.get("id_pg")
-    if book_id:
-        st.subheader("Emotional Arc of the Book")
-        with st.spinner("Computing emotional arc..."):
-            smoothed_emotions, chapter_boundaries = cached_emotion_data(int(book_id))
-
-        # Emotion toggles
-        st.markdown("**Select emotions to display:**")
-        col1, col2, col3, col4 = st.columns(4)
-
-        show_joy = col1.checkbox("Joy", value=True)
-        show_fear = col2.checkbox("Fear", value=True)
-        show_anger = col3.checkbox("Anger", value=True)
-        show_sadness = col4.checkbox("Sadness", value=True)
-
-        visible = []
-        if show_joy: visible.append("joy")
-        if show_fear: visible.append("fear")
-        if show_anger: visible.append("anger")
-        if show_sadness: visible.append("sadness")
-
-        if not visible:
-            st.info("Select at least one emotion to display.")
-        else:
-            fig = plot_emotion_arc(smoothed_emotions, chapter_boundaries, visible)
-            if fig is None:
-                st.info("Could not build emotional arc for this book.")
-            else:
-                st.pyplot(fig)
-    else:
-        st.info("No Project Gutenberg ID available for emotion graph.")
-
-    # Back button
+    # Top button
     if st.button("⬅ Back to recommendations"):
         st.session_state.ui_mode = "chat"
         st.session_state.selected_book = None
         st.rerun()
+
+    st.title(book.get("title", "Untitled"))
+
+    # ===== TOP: TWO COLUMNS =====
+    col_left, col_right = st.columns([1, 2])
+
+    # ---------------- LEFT: cover, authors, downloads ----------------
+    with col_left:
+        # Cover
+        cover_url = None
+        if book.get("id_pg"):
+            cover_url = get_gutenberg_cover_url(book["id_pg"])
+        if cover_url:
+            st.image(cover_url, width=300)
+
+        # Authors
+        authors = book.get("authors", "")
+        if authors:
+            st.subheader("Authors")
+            st.write(authors)
+
+        # Summary
+        summaries = book.get("summaries", "")
+        if summaries:
+            with st.expander("Summary", expanded=True):
+                st.write(summaries)
+        
+        # Download buttons
+        book_id = book.get("id_pg")
+        if book_id:
+            st.subheader("Download")
+            st.markdown(f"[EPUB](https://www.gutenberg.org/ebooks/{book_id}.epub.images)")
+            st.markdown(f"[Kindle](https://www.gutenberg.org/ebooks/{book_id}.kf8.images)")
+            st.markdown(f"[Plain Text](https://www.gutenberg.org/files/{book_id}/{book_id}-0.txt)")
+    
+    # ---------------- RIGHT: chapter summaries ----------------
+    with col_right:
+        # --- EMOTION ARC ---
+        book_id = book.get("id_pg")
+        if book_id:
+            st.subheader("Emotional Arc of the Book")
+            with st.spinner("Computing emotional arc..."):
+                smoothed_emotions, chapter_boundaries = cached_emotion_data(int(book_id))
+
+            # Emotion toggles
+            st.markdown("**Select emotions to display:**")
+            col1, col2, col3, col4 = st.columns(4)
+
+            show_joy = col1.checkbox("Joy", value=True)
+            show_fear = col2.checkbox("Fear", value=True)
+            show_anger = col3.checkbox("Anger", value=True)
+            show_sadness = col4.checkbox("Sadness", value=True)
+
+            visible = []
+            if show_joy: visible.append("joy")
+            if show_fear: visible.append("fear")
+            if show_anger: visible.append("anger")
+            if show_sadness: visible.append("sadness")
+
+            if not visible:
+                st.info("Select at least one emotion to display.")
+            else:
+                fig = plot_emotion_arc(smoothed_emotions, chapter_boundaries, visible)
+                if fig is None:
+                    st.info("Could not build emotional arc for this book.")
+                else:
+                    st.pyplot(fig)
+        else:
+            st.info("No Project Gutenberg ID available for emotion graph.")
+        
+        # --- CHAPTER SUMMARIES ---
+        st.subheader("Chapters")
+
+        book_id = book.get("id_pg")
+        if book_id:
+            with st.spinner("Loading chapter summaries..."):
+                chapters, err = get_all_chapter_summaries(int(book_id))
+
+            if err:
+                st.warning(err)
+            elif not chapters:
+                st.info("No chapters detected or no summaries available.")
+            else:
+                for ch in chapters:
+                    label = f"{ch['title']}"
+                    with st.expander(label, expanded=False):
+                        st.write(ch["summary"])
+        else:
+            st.info("No Project Gutenberg ID available for chapter summaries.")
 
     st.stop()  # Prevents chat UI from rendering underneath
 ######################################################
