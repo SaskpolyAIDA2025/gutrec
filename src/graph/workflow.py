@@ -31,8 +31,8 @@ workflow.add_node("broad", broad_idea_node)
 workflow.add_node("enrich", enrichment_node)
 workflow.add_node("search", search_node)
 workflow.add_node("respond", responder_node)
-workflow.add_node("confirm", confirmation_node)
-workflow.add_node("summarize", summarize_chapters_node)
+#workflow.add_node("confirm", confirmation_node)
+#workflow.add_node("summarize", summarize_chapters_node)
 
 # Connect them
 workflow.add_edge(START, "extract")
@@ -45,18 +45,18 @@ workflow.add_edge("clarify", END)
 workflow.add_edge("broad", "search")
 workflow.add_edge("enrich", "search")
 workflow.add_edge("search", "respond")
-# workflow.add_edge("respond", END)
+workflow.add_edge("respond", END)
 # workflow.add_edge("respond", "summarize")
-workflow.add_edge("respond", "confirm")
-workflow.add_conditional_edges(
-    "confirm",
-    should_summarize,
-    {
-        "summarize": "summarize",
-        END: END
-    }
-)
+# workflow.add_edge("respond", "confirm")
+# workflow.add_conditional_edges(
+#     "confirm",
+#     should_summarize,
+#     {
+#         "summarize": "summarize",
+#         END: END
+#     }
+# )
 
-workflow.add_edge("summarize", END)
+# workflow.add_edge("summarize", END)
 
 app = workflow.compile()

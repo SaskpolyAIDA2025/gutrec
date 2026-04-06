@@ -21,10 +21,35 @@ class BookState(TypedDict, total=False):
 
 
 # ---------------------------------------------------------
+# 2. Router Node
+# ---------------------------------------------------------
+def router_node(state: BookState):
+    """
+    Decide which branch to run based on the input.
+    """
+    if state.get("book_id") is not None:
+        return {"next": "ingest_book"}
+
+    if state.get("question") is not None:
+        return {"next": "answer_question"}
+
+    raise ValueError(
+        "Router could not determine workflow path. "
+        "Provide either 'book_id' for ingestion or 'question' for QA."
+    )
+
+
+
+# ---------------------------------------------------------
 # 2. Build the Graph
 # ---------------------------------------------------------
 def build_workflow_graph():
     graph = StateGraph(BookState)
+
+    # -----------------------------
+    # Router Node
+    # -----------------------------
+    graph.add_node("router", router_node)
 
     # -----------------------------
     # Ingestion Node
@@ -52,13 +77,24 @@ def build_workflow_graph():
     # 3. Define Entry Points
     # ---------------------------------------------------------
 
-    # Entry point for ingestion
-    graph.set_entry_point("ingest_book")
+    # Entry point for router
+    graph.set_entry_point("router")
 
-    # After ingestion → END
+    # ---------------------------------------------------------
+    # Conditional routing
+    # ---------------------------------------------------------
+    graph.add_conditional_edges(
+        "router",
+        lambda state: state["next"],
+        {
+            "ingest_book": "ingest_book",
+            "answer_question": "answer_question",
+        }
+    )
+
+    # End edges
     graph.add_edge("ingest_book", END)
-
-    # Entry point for QA
     graph.add_edge("answer_question", END)
+
 
     return graph.compile()

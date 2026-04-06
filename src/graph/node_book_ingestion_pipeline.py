@@ -30,7 +30,13 @@ def ensure_collection():
             Property(name="chunk_id", data_type=DataType.INT),
             Property(name="text", data_type=DataType.TEXT),
         ],
-        vectorizer_config=Configure.Vectorizer.none()
+        vector_config=[
+            {
+                "name": "default",
+                "vectorizer": Configure.Vectorizer.none(),   # we provide embeddings (nomic-embed-text)
+                "dimensions": 768       # nomic-embed-text dimension
+            }
+        ]
     )
 
 

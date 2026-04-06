@@ -58,7 +58,8 @@ def broad_idea_node(state: AgentState):
 
 def enrichment_node(state: AgentState):
     ext = state["extraction"]
-    meta = get_book_metadata(ext["title"], ext.get("author"))
+
+    meta = get_book_metadata(ext.get("title"), ext.get("author"))
 
     if not meta:
         return {
@@ -106,7 +107,8 @@ def responder_node(state: AgentState):
                 content=(
                     "Here are some books I found that might interest you:\n\n"
                     f"{summary}\n\n"
-                    f"If you want to see a summary by chapter of one of those books write its number (1-{len(results)}), or write 0 to continue with a different book reference."
+                    f"Let me know if you want recommendations based on a different book as reference."
+                    # f"If you want to see a summary by chapter of one of those books write its number (1-{len(results)}), or write 0 to continue with a different book reference."
                 )
             )
         ],
@@ -118,7 +120,22 @@ def confirmation_node(state: AgentState):
     results = state.get("results", [])
 
     user_text = input("\nYou: ")
-    i = int(user_text)
+    try:
+        i = int(user_text)
+    except ValueError:
+        # Not a number
+        return {
+            "messages": [
+                AIMessage(
+                    content=(
+                        "Ok. Let's try a recommendation related with another book.\n"
+                        "Give me a title and author as reference to look for one similar to it.\n"
+                        "Type 'exit' to quit."
+                    )
+                )
+            ],
+            "book_id": None
+        }
     
     if i > 0 and i < len(results) + 1:
         book_id = get_gutenberg_id(results[i - 1].get('title', 'N/A'))
@@ -138,7 +155,9 @@ def confirmation_node(state: AgentState):
             "messages": [
                 AIMessage(
                     content=(
-                        "Ok. Let's try a recommendation related with another book.\nGive me a title and author as reference to look for one similar to it.\nType 'exit' to quit."
+                        "Ok. Let's try a recommendation related with another book.\n"
+                        "Give me a title and author as reference to look for one similar to it.\n"
+                        "Type 'exit' to quit."
                     )
                 )
             ],

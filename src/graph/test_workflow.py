@@ -1,4 +1,5 @@
 from src.graph.workflow_graph import build_workflow_graph
+import weaviate
 
 def test_ingestion(graph, book_id):
     print("\n=== Running Book Ingestion ===")
@@ -20,17 +21,27 @@ def test_question_answering(graph, question):
 
 if __name__ == "__main__":
     graph = build_workflow_graph()
+    
+    # client = weaviate.connect_to_local(
+    # port=8080,
+    # grpc_port=50051,
+    # )
+    
+    # try:
+    #     client.collections.delete("BookChunk")
+    # finally:
+    #     client.close()
 
     # -------------------------------
     # 1. Test ingestion
     # -------------------------------
-    test_ingestion(graph, book_id=1342)   # Pride and Prejudice
+    test_ingestion(graph, book_id=84)   # Pride and Prejudice
 
     # -------------------------------
     # 2. Test QA
     # -------------------------------
     test_question_answering(
         graph,
-        question="What is the main conflict in the early chapters?"
+        question="How was created the monster?"
     )
     
