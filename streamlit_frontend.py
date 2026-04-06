@@ -1,5 +1,7 @@
 import streamlit as st
 from src.graph.workflow import app
+from src.utils.chapter_summaries import get_all_chapter_summaries
+from src.utils.sentiment_graph import build_emotion_arc_figure
 from langchain_core.messages import AIMessage, HumanMessage
 
 
@@ -12,7 +14,7 @@ if "selected_book" not in st.session_state:
 
 
 # -------------------------------------------------------------------
-# Helper function
+# Helper functions
 # -------------------------------------------------------------------
 def get_gutenberg_cover_url(book_id):
     """
@@ -38,6 +40,11 @@ def get_gutenberg_cover_url(book_id):
             pass
 
     return None
+
+
+@st.cache_resource
+def get_emotion_arc_fig(book_id: int):
+    return build_emotion_arc_figure(book_id)
 
 
 # -------------------------------------------------------------------
@@ -152,6 +159,26 @@ if st.session_state.ui_mode == "detail":
     if summaries:
         with st.expander("Summary", expanded=True):
             st.write(summaries)
+    
+    # --- CHAPTER SUMMARIES ---
+    st.subheader("Chapters")
+
+    book_id = book.get("id_pg")
+    if book_id:
+        with st.spinner("Loading chapter summaries..."):
+            chapters, err = get_all_chapter_summaries(int(book_id))
+
+        if err:
+            st.warning(err)
+        elif not chapters:
+            st.info("No chapters detected or no summaries available.")
+        else:
+            for ch in chapters:
+                label = f"{ch['title']}"
+                with st.expander(label, expanded=False):
+                    st.write(ch["summary"])
+    else:
+        st.info("No Project Gutenberg ID available for chapter summaries.")
 
     # Download buttons
     book_id = book.get("id_pg")
@@ -160,6 +187,20 @@ if st.session_state.ui_mode == "detail":
         st.markdown(f"[EPUB](https://www.gutenberg.org/ebooks/{book_id}.epub.images)")
         st.markdown(f"[Kindle](https://www.gutenberg.org/ebooks/{book_id}.kf8.images)")
         st.markdown(f"[Plain Text](https://www.gutenberg.org/files/{book_id}/{book_id}-0.txt)")
+
+    # --- EMOTION ARC ---
+    book_id = book.get("id_pg")
+    if book_id:
+        st.subheader("Emotional Arc of the Book")
+        with st.spinner("Computing emotional arc..."):
+            fig = get_emotion_arc_fig(int(book_id))
+
+        if fig is None:
+            st.info("Could not build emotional arc for this book.")
+        else:
+            st.pyplot(fig)
+    else:
+        st.info("No Project Gutenberg ID available for emotion graph.")
 
     # Back button
     if st.button("⬅ Back to recommendations"):

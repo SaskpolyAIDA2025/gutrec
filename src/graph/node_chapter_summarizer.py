@@ -60,8 +60,8 @@ def summarize_chapters_node(state: Dict[str, Any]) -> Dict[str, Any]:
                     }
             return {"error": f"Chapter {chapter_number} not found in cached summaries."}
 
-        for item in cached:
-            print(f"{item['title']}\n{item['summary']}")
+        # for item in cached:
+        #     print(f"{item['title']}\n{item['summary']}")
 
         return {
             "book_id": book_id,
@@ -106,14 +106,14 @@ def summarize_chapters_node(state: Dict[str, Any]) -> Dict[str, Any]:
 
     # Otherwise summarize ALL chapters
     summaries = []
-    print(f"This book has {len(chapters)} chapters.")
+    # print(f"This book has {len(chapters)} chapters.")
     for i, ch in enumerate(chapters, start=1):
         try:
             summary = summarize_long(ch["content"])
         except Exception as e:
             summary = f"Error summarizing chapter {i}: {str(e)}"
         
-        print(f"{ch['title']}\n{summary}")
+        # print(f"{ch['title']}\n{summary}")
 
         summaries.append({
             "chapter": i,
