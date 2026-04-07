@@ -1,12 +1,15 @@
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-import math
 
 model_name = "facebook/bart-large-cnn"
 
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
 
+
 def summarize_chunk(text, max_len=200, min_len=50):
+    """
+    Returns: Summary of the given text.
+    """
     inputs = tokenizer(text, return_tensors="pt", max_length=1024, truncation=True)
     summary_ids = model.generate(
         inputs["input_ids"],
@@ -19,6 +22,9 @@ def summarize_chunk(text, max_len=200, min_len=50):
     return tokenizer.decode(summary_ids[0], skip_special_tokens=True)
 
 def chunk_text(text, max_tokens=900, overlap=100):
+    """
+    Returns: text divided in chunks.
+    """
     tokens = tokenizer.tokenize(text)
     chunks = []
     i = 0
@@ -29,6 +35,9 @@ def chunk_text(text, max_tokens=900, overlap=100):
     return chunks
 
 def summarize_long(text):
+    """
+    Returns: Summary of the given (long) text.
+    """
     chunks = chunk_text(text)
 
     # Summarize each chunk

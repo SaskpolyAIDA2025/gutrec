@@ -1,10 +1,10 @@
 import streamlit as st
-from src.graph.workflow import app
+from langchain_core.messages import AIMessage, HumanMessage
+
 from src.utils.chapter_summaries import get_all_chapter_summaries
 from src.utils.sentiment_graph import build_emotion_arc_data, plot_emotion_arc
+from src.graph.workflow import app
 from src.graph.workflow_graph import get_book_qa_app
-
-from langchain_core.messages import AIMessage, HumanMessage
 
 
 # Navigation state
@@ -71,7 +71,7 @@ div.stButton > button:hover {
     cursor: pointer;
 }
 
-/* Remove the annoying focus outline */
+/* Remove the focus outline */
 div.stButton > button:focus {
     outline: none;
     box-shadow: none;
@@ -88,7 +88,7 @@ st.set_page_config(
 
 
 # -------------------------------------------------------------------
-# 1. Initialize visible transcript
+# Initialize visible transcript
 # -------------------------------------------------------------------
 if "message_history" not in st.session_state:
     st.session_state.message_history = [
@@ -102,7 +102,7 @@ if "message_history" not in st.session_state:
     ]
 
 # -------------------------------------------------------------------
-# 2. Initialize LangGraph working state
+# Initialize LangGraph working state
 # -------------------------------------------------------------------
 if "graph_state" not in st.session_state:
     st.session_state.graph_state = {
@@ -114,12 +114,13 @@ if "graph_state" not in st.session_state:
     }
 
 state = st.session_state.graph_state
+st.title("Project Gutenberg Discovery & Recommendation Platform")
 
 # Layout
 left_col, main_col, right_col = st.columns([1, 2, 2])
 
 # -------------------------------------------------------------------
-# 3. Clear Chat button
+# Clear Chat button
 # -------------------------------------------------------------------
 with left_col:
     if st.button("Clear Chat"):
@@ -136,7 +137,7 @@ with left_col:
 
 ######################################################
 # -------------------------------------------------------------------
-# DETAIL PAGE (if a book was clicked)
+# DETAIL PAGE (if a book is clicked)
 # -------------------------------------------------------------------
 if st.session_state.ui_mode == "detail":
     book = st.session_state.selected_book
@@ -286,7 +287,7 @@ if st.session_state.ui_mode == "detail":
 
 
 # -------------------------------------------------------------------
-# 4. Main chat area
+# Main chat area
 # -------------------------------------------------------------------
 with main_col:
     user_input = st.chat_input("Type here...")
@@ -320,7 +321,7 @@ with main_col:
         st.session_state.message_history = state["messages"]
 
     # -------------------------------------------------------------------
-    # 5. Render chat history (reverse order)
+    # Render chat history (reverse order)
     # -------------------------------------------------------------------
     for i in range(1, len(st.session_state.message_history) + 1):
         this_message = st.session_state.message_history[-i]
@@ -331,7 +332,7 @@ with main_col:
         box.markdown(this_message.content)
 
 # -------------------------------------------------------------------
-# 6. Sidebar: Book Recommendations
+# Sidebar: Book Recommendations
 # -------------------------------------------------------------------
 with right_col:
     st.header("📚 Recommendations")
@@ -370,19 +371,6 @@ with right_col:
                     authors = book.get("authors", [])
                     if authors:
                         st.markdown(f"**Authors:** {authors}")
-
-                    # # Subjects / Bookshelves
-                    # subjects = book.get("subjects", "")
-                    # if subjects:
-                    #     st.markdown(f"**Subjects:** {subjects}")
-
-                    # shelves = book.get("bookshelves", "")
-                    # if shelves:
-                    #     st.markdown(f"**Bookshelves:** {shelves}")
-
-                    # # Download count
-                    # if book.get("download_count") is not None:
-                    #     st.markdown(f"**Downloads:** {book['download_count']}")
 
                     # Summary
                     summaries = (book.get("summaries", ""))

@@ -2,13 +2,12 @@ from typing import TypedDict, Optional, List, Dict, Any, Annotated
 from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
 
-# Import your nodes
 from src.graph.node_book_ingestion_pipeline import book_ingestion_pipeline_node
 from src.graph.node_rag_qa import rag_qa_node
 
 
 # ---------------------------------------------------------
-# 1. Define the State Schema
+# Define the State Schema
 # ---------------------------------------------------------
 class BookState(TypedDict, total=False):
     rag_messages: Annotated[list, add_messages]
@@ -23,35 +22,10 @@ class BookState(TypedDict, total=False):
 
 
 # ---------------------------------------------------------
-# 2. Router Node
-# ---------------------------------------------------------
-# def router_node(state: BookState):
-#     """
-#     Decide which branch to run based on the input.
-#     """
-#     if state.get("book_id") is not None:
-#         return {"next": "ingest_book"}
-
-#     if state.get("question") is not None:
-#         return {"next": "answer_question"}
-
-#     raise ValueError(
-#         "Router could not determine workflow path. "
-#         "Provide either 'book_id' for ingestion or 'question' for QA."
-#     )
-
-
-
-# ---------------------------------------------------------
-# 2. Build the Graph
+# Build the Graph
 # ---------------------------------------------------------
 def build_workflow_graph():
     graph = StateGraph(BookState)
-
-    # -----------------------------
-    # Router Node
-    # -----------------------------
-    # graph.add_node("router", router_node)
 
     # -----------------------------
     # Ingestion Node
@@ -75,34 +49,15 @@ def build_workflow_graph():
         }
     )
 
-    # ---------------------------------------------------------
-    # 3. Define Entry Points
-    # ---------------------------------------------------------
-
-    # Entry point for router
-    # graph.set_entry_point("router")
+    # Entry point for ingest_book
     graph.set_entry_point("ingest_book")
 
-    # ---------------------------------------------------------
-    # Conditional routing
-    # ---------------------------------------------------------
-    # graph.add_conditional_edges(
-    #     "router",
-    #     lambda state: state["next"],
-    #     {
-    #         "ingest_book": "ingest_book",
-    #         "answer_question": "answer_question",
-    #     }
-    # )
-
-    # End edges
+    # Addd edges
     graph.add_edge("ingest_book", "answer_question")
     graph.add_edge("answer_question", END)
 
-
     return graph.compile()
 
-# workflow.graph.py
-
+# Function to be used in ui
 def get_book_qa_app():
     return build_workflow_graph()

@@ -1,8 +1,16 @@
 # Project Gutenberg Discovery & Recommendation Platform  
-### *LangGraph‑Powered Conversational Book Search & Recommendation Engine*
+### *LangGraph‑Powered Conversational Recommendation + Streamlit UI*
 
-A modern AI‑driven system that transforms how readers explore Project Gutenberg’s public‑domain library.  
-The platform now uses **LangGraph** to orchestrate a deterministic, multi‑node conversational workflow for book identification, metadata enrichment, and semantic search.
+A modern AI‑driven system that transforms how readers explore Project Gutenberg’s public‑domain library.
+The platform combines:
+
+- **LangGraph** for deterministic conversational workflows
+- **Weaviate** for semantic vector search
+- **Ollama** for local LLM inference
+- **Streamlit** for a polished, interactive UI
+- **RAG‑based book‑specific Q&A**
+- **Emotion arc visualization**
+- **Chapter‑level summarization**
 
 Capstone Project for AIDA 2025 — Angie, Eladio, KNK  
 ---
@@ -12,108 +20,251 @@ Capstone Project for AIDA 2025 — Angie, Eladio, KNK
 This project provides an end‑to‑end pipeline for transforming raw Project Gutenberg metadata into a fully searchable, vector‑powered discovery system.  
 The updated version introduces a **LangGraph‑based conversational agent** that handles:
 
-- Structured extraction of book titles/authors  
-- Clarification loops when extraction fails  
-- Fallback “broad idea” summarization  
-- Google Books metadata enrichment  
-- Semantic search over a local Weaviate vector database  
-- Multi‑turn conversation with persistent state  
+The system now includes:
 
-The entire system runs locally for privacy, reproducibility, and full control over data and models.
+- A **LangGraph conversational agent** for book identification
+- A **Streamlit UI** for real‑time interaction
+- A **book detail page** with summaries, emotional arcs, and RAG Q&A
+- A **Weaviate vector database** for semantic search
+- A **local inference stack** (Gemma 3 + mxbai‑embed‑large)
 
----
-
-## Key Features
-
-### Data Pipeline
-- Fetch raw metadata from the **Gutendex API**
-- Clean and normalize metadata (languages, subjects, bookshelves)
-- Generate embeddings using **mxbai‑embed‑large** (Ollama)
-- Store vectorized book objects in **Weaviate**
-- Perform semantic search using near‑vector queries
-
-### Conversational Intelligence (LangGraph)
-- Deterministic multi‑node workflow
-- Structured extraction using Gemma 3 (4B)
-- Automatic clarification loop (max 3 turns)
-- Fallback “broad idea” summarization when no title is found
-- Google Books metadata enrichment
-- Final recommendation generation
-- Persistent message history using `add_messages`
+Everything runs **locally** for privacy, reproducibility, and full control.
 
 ---
+## Architecture Overview
 
-## Updated Architecture (LangGraph)
+### High‑Level System Diagram
 
-### High‑Level LangGraph Flow
-User Input │ ▼ [Extraction Node] │ ├── title found → [Enrichment Node] │ ├── no title + loops < 3 → [Clarification Node] │ └── no title + loops ≥ 3 → [Broad Idea Node] │ ▼ [Search Node] │ ▼ [Respond Node]
+```
+User
+ │
+ ▼
+Streamlit UI
+ │
+ ▼
+LangGraph Conversational Workflow
+ │
+ ├── Extraction Node (title/author)
+ ├── Clarification Loop (max 2)
+ ├── Broad-Idea Summarization
+ ├── Google Books Enrichment
+ └── Semantic Search (Weaviate)
+ │
+ ▼
+Recommendations + Book Detail Page
+ │
+ ├── Chapter Summaries
+ ├── Emotional Arc (Transformers)
+ └── Book-Specific RAG QA (LangGraph)
+ ```
 
+## LangGraph Conversational Workflow
 
-### Node Responsibilities (Short Descriptions)
+The main conversational agent is defined in src/graph/workflow.py.
 
-- **Extraction Node**  
-  Uses a structured LLM chain to extract title/author from user input.
+### Node Responsibilities
 
-- **Clarification Node**  
-  Asks follow‑up questions when extraction fails.
+- **Extraction Node**
 
-- **Broad Idea Node**  
-  Summarizes the user’s intent after 3 failed clarification attempts.
+Extracts structured title/author from user input.
 
-- **Enrichment Node**  
-  Fetches metadata from Google Books (description, categories, etc.).
+- **Clarification Node**
 
-- **Search Node**  
-  Performs semantic search in Weaviate using either:
-  - extracted title/metadata, or  
-  - broad‑idea summary  
+Asks follow‑up questions when extraction fails.
 
-- **Responder Node**  
-  Formats and returns final recommendations.
+- **Broad Idea Node**
 
----
+Summarizes user intent after 2 failed attempts.
 
-## LangGraph Implementation
+- **Enrichment Node**
 
-### Example: Workflow Definition (`workflow.py`)
+Fetches metadata from Google Books.
 
-```python
-workflow = StateGraph(AgentState)
+- **Search Node**
 
-workflow.add_node("extract", extraction_node)
-workflow.add_node("clarify", clarification_node)
-workflow.add_node("broad", broad_idea_node)
-workflow.add_node("enrich", enrichment_node)
-workflow.add_node("search", search_node)
-workflow.add_node("respond", responder_node)
+Performs semantic search in Weaviate.
 
-workflow.add_edge(START, "extract")
-workflow.add_conditional_edges("extract", should_continue, {
-    "clarify": "clarify",
-    "enrich": "enrich",
-    "broad": "broad"
-})
-workflow.add_edge("clarify", END)
-workflow.add_edge("broad", "search")
-workflow.add_edge("enrich", "search")
-workflow.add_edge("search", "respond")
-workflow.add_edge("respond", END)
+- **Responder Node**
 
-app = workflow.compile()
+Formats final recommendations.
+
+### Routing Logic
+
+```
+def should_continue(state):
+    title = state["extraction"].get("title", "")
+    loops = state.get("loop_count", 0)
+
+    if title:
+        return "enrich"
+    if loops < 2:
+        return "clarify"
+    return "broad"
 ```
 
-How the Conversation Loop Works
-- run_chat.py maintains a persistent state dictionary across turns
-- Messages are appended automatically using add_messages
-- Each user turn triggers a full LangGraph execution
-- After each turn, extraction‑related fields are cleared:
-  - extraction
-  - book_metadata
-  - results
-- The loop ends when the user types exit or quit
-- On shutdown, Weaviate and Ollama connections are closed cleanly
+### Graph Structure
 
-## Data Flow (End‑to‑End)
+```
+START → extract
+        │
+        ├── title found → enrich → search → respond → END
+        ├── no title + loops < 2 → clarify → END
+        └── no title + loops ≥ 2 → broad → search → respond → END
+```
+
+## Book‑Specific RAG QA Workflow
+
+Defined in src/graph/workflow_graph.py.
+
+### Steps
+
+**1. Ingestion Node**
+
+- Downloads the book
+
+- Splits into chapters
+
+- Chunks text
+
+- Embeds chunks
+
+- Stores them in a temporary vector index
+
+**2. QA Node**
+
+- Retrieves relevant chunks
+
+- Generates an answer using RAG
+
+### Graph
+```
+ingest_book → answer_question → END
+```
+
+This workflow powers the **"Chat about this book"** section in the UI.
+
+## Streamlit UI (Full Feature Breakdown)
+
+The UI lives in streamlit_frontend.py and provides a polished, multi‑panel experience.
+
+### UI Layout
+
+The interface uses a **three‑column layout**:
+
+```
+[Left]     [Main Chat]     [Right Sidebar: Recommendations]
+```
+
+#### Left Column
+- **Clear Chat** button
+
+- Resets LangGraph state and transcript
+
+#### Main Column
+
+- **Chat interface** powered by LangGraph
+
+- Persistent message history
+
+- Automatic state synchronization
+
+- Full multi‑turn conversation
+
+#### Right Column
+
+- **Live book recommendations**
+
+- Cover images (auto‑detected via Gutenberg URLs)
+
+- Clickable titles → open detail page
+
+- Summaries + certainty score
+
+### Book Detail Page (Streamlit)
+
+When a user clicks a recommended book, the UI switches to **detail mode**.
+
+#### Features
+
+**1. Book Cover + Metadata**
+
+- Auto‑fetched cover from Gutenberg
+
+- Authors
+
+- Summary
+
+- Download links (EPUB, Kindle, Plain Text)
+
+**2. Book‑Specific Chat (RAG QA)**
+
+- Each book has its own chat history
+
+- Uses the LangGraph RAG pipeline
+
+- Answers grounded in the book's text
+
+**3. Emotional Arc Visualization**
+
+Powered by:
+
+- j-hartmann/emotion-english-distilroberta-base
+
+- Paragraph‑level emotion scoring
+
+- Smoothed curves
+
+- Chapter boundary markers
+
+Users can toggle:
+
+- Joy
+
+- Fear
+
+- Anger
+
+- Sadness
+
+**4. Chapter Summaries**
+
+- Generated via node_chapter_summarizer
+
+- Displayed in collapsible expanders
+
+- One per chapter
+
+## Sentiment & Chapter Summary Pipeline
+
+### Emotion Arc
+
+Defined in src/utils/sentiment_graph.py.
+
+Pipeline:
+
+1. Download book
+
+2. Split into chapters
+
+3. Chunk paragraphs
+
+4. Run emotion classifier
+
+5. Smooth curves
+
+6. Plot with chapter boundaries
+
+### Chapter Summaries
+
+Defined in src/utils/chapter_summaries.py.
+
+```
+summaries = summarize_chapters_node({"book_id": book_id})
+```
+
+### Data Pipeline (End‑to‑End)
+
+```
 fetch_books.py
     ↓
 dataset_process.py
@@ -123,33 +274,98 @@ gutenindex_to_weaviate_embedding.py
 Weaviate Vector DB
     ↓
 run_chat.py → LangGraph → Recommendations
+    ↓
+streamlit_frontend.py → UI
+```
+---
+
+## Updated Project Structure
+
+Reflecting your latest screenshot:
+
+```
+gutrec/
+│
+├── src/
+│   ├── graph/
+│   │   ├── node_rag_qa.py
+│   │   ├── node_book_ingestion_pipeline.py
+│   │   ├── node_chapter_summarizer.py
+│   │   ├── nodes.py
+│   │   ├── state.py
+│   │   ├── workflow.py
+│   │   └── workflow_graph.py
+│   │
+│   ├── utils/
+│   │   ├── book_cache.py
+│   │   ├── book_downloader.py
+│   │   ├── book_downloaded.py
+│   │   ├── chapter_summaries.py
+│   │   ├── ollama_embedded.py
+│   │   ├── parallel_embedded.py
+│   │   ├── sentiment_graph.py
+│   │   ├── summarizer.py
+│   │   ├── books_api.py
+│   │   ├── llm_chain.py
+│   │   ├── run_chat.py
+│   │   ├── schemas.py
+│   │   └── search_query.py
+│   │
+│   ├── summaries/
+│   │   ├── 11_summaries.json
+│   │   ├── 84_summaries.json
+│   │   ├── 1342_summaries.json
+│   │   ├── 27400_summaries.json
+│   │   └── 51060_summaries.json
+│
+├── streamlit_frontend.py
+├── fetch_books.py
+├── dataset_process.py
+├── gutenindex_to_weaviate_embedding.py
+├── books_metadata.csv
+├── processed_books.csv
+├── processed_books.zip
+├── requirements.txt
+├── .env
+└── README.md
+```
 
 ## Installation
 
 ### 1. Clone the repository
 
-git clone <your-repo-url>
+```
+git clone https://github.com/SaskpolyAIDA2025/gutrec.git
 cd <project-folder>
+```
 
 ### 2. Create and activate a virtual environment
 
+```
 python -m venv .venv
 source .venv/bin/activate   # macOS/Linux
 .venv\Scripts\activate      # Windows
+```
 
 ### 3. Install dependencies
 
+```
 pip install -r requirements.txt
+```
 
 ## Environment Setup
 
 ### 1. Install Ollama
 
 Download from: https://ollama.com/download
+
 Pull required models:
 
+```
 ollama pull gemma3:4b
 ollama pull mxbai-embed-large
+ollama pull nomic-embed-text
+```
 
 ### 2. Start Weaviate (Docker)
 
@@ -175,70 +391,48 @@ services:
 
 Run:
 
+```
 docker compose up -d
+```
 
 ### 3. Configure Google Books API
 
 Create a  .env file:
 
+```
 GOOGLE_BOOKS_API_KEY=your_key_here
+```
 
 ## Usage
 
 ### Step 1 — Fetch raw metadata
 
+```
 python fetch_books.py
+```
 
 ### Step 2 — Preprocess dataset
 
+```
 python dataset_process.py
+```
 
 ### Step 3 — Ingest into Weaviate
 
+```
 python gutenindex_to_weaviate_embedding.py
+```
 
-### Step 4 — Run the chatbot
-
-python run_chat.py
-
-Example:
-You: I'm looking for the book about time thieves by Michael Ende.
-AI: Great, I found the title: Momo.
-AI: Found metadata for Momo. Searching for similar books...
-AI: Here are some books I found...
-
-## Project Structure
+### Step 4 — Run the Streamlit UI
 
 ```
-project/
-│
-├── src/
-│   ├── graph/
-│   │   ├── nodes.py
-│   │   ├── state.py
-│   │   └── workflow.py
-│   ├── books_api.py
-│   ├── llm_chain.py
-│   ├── run_chat.py
-│   ├── schemas.py
-│   ├── search_query.py
-│   └── __pycache__/
-│
-├── fetch_books.py
-├── gutenindex_to_weaviate_embedding.py
-├── dataset_process.py
-├── books_metadata.csv
-├── processed_books.csv
-├── requirements.txt
-├── .env
-└── README.md
+streamlit run streamlit_frontend.py
 ```
 
 ### Roadmap
 
-- Add RAG‑based summarization
-- Add user profiles for personalized recommendations
-- Add web UI (streamline or FastAPI + React)
+- Add RAG‑based summarization for recommendations
+- Add user profiles for personalization
 - Add multilingual search
 - Add book‑to‑book similarity graph
 

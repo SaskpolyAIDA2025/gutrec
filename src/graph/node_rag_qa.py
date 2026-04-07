@@ -1,28 +1,15 @@
 from typing import Dict, Any
-import requests
 import weaviate
+
 from src.utils.ollama_embedder import embed_text
 from src.llm_chain import llm, rag_prompt
 
+# Connect to weaviate
 client = weaviate.connect_to_local(
     port=8080,
     grpc_port=50051,
 )
 CLASS_NAME = "BookChunk"
-
-OLLAMA_URL = "http://localhost:11434/api/generate"
-LLM_MODEL = "gemma3:4b"   # or "mistral", "qwen", etc.
-
-
-def ollama_generate(prompt: str):
-    response = requests.post(
-        OLLAMA_URL,
-        json={"model": LLM_MODEL, "prompt": prompt, "stream": False}
-    )
-    response.raise_for_status()
-    data = response.json()
-
-    return data.get("response", "")
 
 
 def rag_qa_node(state: Dict[str, Any]) -> Dict[str, Any]:
@@ -57,8 +44,10 @@ def rag_qa_node(state: Dict[str, Any]) -> Dict[str, Any]:
 
     context = "\n\n".join([h["text"] for h in results])
 
+    # Close connection to weaviate
     client.close()
 
+    # Generate answer using the llm.
     answer = llm.invoke(
         rag_prompt.format(question=question, context=context)
     )

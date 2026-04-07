@@ -1,7 +1,5 @@
 import requests
 import csv
-import sys
-import time
 import argparse
 
 API_URL = "https://gutendex.com/books"

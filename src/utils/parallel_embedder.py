@@ -2,7 +2,7 @@ import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 OLLAMA_URL = "http://localhost:11434/api/embeddings"
-EMBED_MODEL = "nomic-embed-text" #"mxbai-embed-large"
+EMBED_MODEL = "nomic-embed-text" #"mxbai-embed-large". Must be the same used in ollama_embedder.
 MAX_WORKERS = 6   # safe default for Ollama
 
 

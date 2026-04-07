@@ -1,5 +1,3 @@
-import requests
-import re
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -42,7 +40,7 @@ def build_emotion_arc_data(book_id: int):
     """
 
     # ---------------------------------------------------------
-    # 1. Get book text (and chapters)
+    # Get book text (and chapters)
     # ---------------------------------------------------------
     # Download book and split into chapters
     text = download_gutenberg_book(book_id)
@@ -52,7 +50,7 @@ def build_emotion_arc_data(book_id: int):
         return None  # caller can handle "no chapters" case
 
     # ---------------------------------------------------------
-    # 2. Split into paragraphs and track chapter boundaries
+    # Split into paragraphs and track chapter boundaries
     # ---------------------------------------------------------
     chapter_boundaries = []
     paragraphs = []
@@ -71,7 +69,7 @@ def build_emotion_arc_data(book_id: int):
         return None
 
     # ---------------------------------------------------------
-    # 3. Emotion analysis per paragraph
+    # Emotion analysis per paragraph
     # ---------------------------------------------------------
     emotion_series = {e: [] for e in TARGET_EMOTIONS}
 
@@ -81,14 +79,17 @@ def build_emotion_arc_data(book_id: int):
             emotion_series[e].append(scores[e])
 
     # ---------------------------------------------------------
-    # 4. Smooth curves
+    # Smooth curves
     # ---------------------------------------------------------
     smoothed_emotions = {
         e: smooth(emotion_series[e], window=9)
         for e in TARGET_EMOTIONS
     }
 
-    return smoothed_emotions, chapter_boundaries
+    if smoothed_emotions and chapter_boundaries:
+        return smoothed_emotions, chapter_boundaries
+    else:
+        return [], []
 
 
 def plot_emotion_arc(smoothed_emotions, chapter_boundaries, visible_emotions):
@@ -97,7 +98,7 @@ def plot_emotion_arc(smoothed_emotions, chapter_boundaries, visible_emotions):
     with the multi-emotion arc of the book.
     """
     # ---------------------------------------------------------
-    # 5. Build the figure (do NOT plt.show())
+    # Build the figure (do NOT plt.show())
     # ---------------------------------------------------------
     fig, ax = plt.subplots(figsize=(18, 8))
 
@@ -124,7 +125,7 @@ def plot_emotion_arc(smoothed_emotions, chapter_boundaries, visible_emotions):
 
     ax.set_title("Multi-Emotion Arc of the Book (Paragraph-Level)", fontsize=16, pad=20)
     ax.set_ylabel("Emotion Probability", fontsize=12)
-    ax.set_ylim(0, 0.7)
+    ax.set_ylim(0, 1.0)
     ax.grid(alpha=0.25)
     ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1), frameon=False)
 

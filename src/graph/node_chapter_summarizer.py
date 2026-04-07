@@ -3,13 +3,15 @@ import os
 import json
 from typing import Dict, Any
 
-# from src.utils.book_downloader import get_chapter, download_gutenberg_book, split_into_chapters
 from src.utils.book_cache import get_book_chapters
 from src.utils.summarizer import summarize_long
 
 SUMMARY_DIR = "summaries"
 os.makedirs(SUMMARY_DIR, exist_ok=True)
 
+# ---------------------------------------------------------
+# Helper functions to save and reuse summaries
+# ---------------------------------------------------------
 def summary_json_path(book_id: int) -> str:
     return os.path.join(SUMMARY_DIR, f"{book_id}_summaries.json")
 
@@ -37,7 +39,7 @@ def summarize_chapters_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
 
     book_id = state.get("book_id")
-    chapter_number = state.get("chapter_number")  # optional
+    chapter_number = state.get("chapter_number")
 
     if not book_id:
         return {
@@ -59,9 +61,6 @@ def summarize_chapters_node(state: Dict[str, Any]) -> Dict[str, Any]:
                         "summary": item["summary"]
                     }
             return {"error": f"Chapter {chapter_number} not found in cached summaries."}
-
-        # for item in cached:
-        #     print(f"{item['title']}\n{item['summary']}")
 
         return {
             "book_id": book_id,
@@ -104,16 +103,14 @@ def summarize_chapters_node(state: Dict[str, Any]) -> Dict[str, Any]:
             "summary": summary
         }
 
-    # Otherwise summarize ALL chapters
+    # Otherwise summarize all chapters
     summaries = []
-    # print(f"This book has {len(chapters)} chapters.")
+
     for i, ch in enumerate(chapters, start=1):
         try:
             summary = summarize_long(ch["content"])
         except Exception as e:
             summary = f"Error summarizing chapter {i}: {str(e)}"
-        
-        # print(f"{ch['title']}\n{summary}")
 
         summaries.append({
             "chapter": i,

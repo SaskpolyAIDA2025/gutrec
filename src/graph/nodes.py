@@ -1,12 +1,12 @@
 from langchain_core.messages import AIMessage, HumanMessage
 from src.graph.state import AgentState
-from src.llm_chain import structured_chain, chat_chain, broad_idea_prompt
+
+from src.llm_chain import llm, structured_chain, chat_chain, broad_idea_prompt
 from src.books_api import get_book_metadata
 from src.search_query import semantic_search
-from src.utils.book_downloader import get_gutenberg_id
-from src.llm_chain import llm
 
-# 2. Define the Nodes
+
+# Define the Nodes
 def extraction_node(state: AgentState):
     user_input = state["messages"][-1].content
     
@@ -77,7 +77,7 @@ def enrichment_node(state: AgentState):
 
 def search_node(state: AgentState):
     if "broad_query" in state and state["broad_query"]:
-        # We use the summary of  what user has mentioned
+        # We use the summary of what user has mentioned
         query_text = state["broad_query"]
     else:
         # We use the description from Google Books as the query for Weaviate
@@ -97,7 +97,7 @@ def responder_node(state: AgentState):
     
     # Build a readable summary
     summary = "\n".join(
-        f"{i}.- ({b.get('id_pg', 'N/A')}) **{b.get('title', 'N/A')}** by {b.get('authors', 'N/A')} (certainty {b.get('certainty', 'N/A')})\n"
+        f"{i}.- **{b.get('title', 'N/A')}** by {b.get('authors', 'N/A')} (certainty {b.get('certainty', 'N/A')})\n"
         for i, b in enumerate(results, start=1)
     )
 
@@ -108,58 +108,8 @@ def responder_node(state: AgentState):
                     "Here are some books I found that might interest you:\n\n"
                     f"{summary}\n\n"
                     f"Let me know if you want recommendations based on a different book as reference."
-                    # f"If you want to see a summary by chapter of one of those books write its number (1-{len(results)}), or write 0 to continue with a different book reference."
                 )
             )
         ],
         "reset_messages": True,
     }
-
-
-def confirmation_node(state: AgentState):
-    results = state.get("results", [])
-
-    user_text = input("\nYou: ")
-    try:
-        i = int(user_text)
-    except ValueError:
-        # Not a number
-        return {
-            "messages": [
-                AIMessage(
-                    content=(
-                        "Ok. Let's try a recommendation related with another book.\n"
-                        "Give me a title and author as reference to look for one similar to it.\n"
-                        "Type 'exit' to quit."
-                    )
-                )
-            ],
-            "book_id": None
-        }
-    
-    if i > 0 and i < len(results) + 1:
-        book_id = get_gutenberg_id(results[i - 1].get('title', 'N/A'))
-        
-        return {
-            "messages": [
-                AIMessage(
-                    content=(
-                        "Preparing chapter-by-chapter summaries of this book...\n\n"
-                    )
-                )
-            ],
-            "book_id": book_id
-        }
-    else:
-        return {
-            "messages": [
-                AIMessage(
-                    content=(
-                        "Ok. Let's try a recommendation related with another book.\n"
-                        "Give me a title and author as reference to look for one similar to it.\n"
-                        "Type 'exit' to quit."
-                    )
-                )
-            ],
-            "book_id": None
-        }

@@ -6,6 +6,10 @@ load_dotenv()
 API_KEY = os.getenv("GOOGLE_BOOKS_API_KEY")
 
 def get_book_metadata(title: str, author: str | None = None) -> dict | None:
+    """
+        Given a title and (possibly) an author, a request is sent to Google Books Api to get its information.
+        Return: Metadata of the book as a dict.
+    """
     title = title.strip()
     author = author.strip() if author else None
 
@@ -41,7 +45,6 @@ def get_book_metadata(title: str, author: str | None = None) -> dict | None:
         "publishedDate": volume_info.get("publishedDate"),
         "categories": volume_info.get("categories", []),
         "language": volume_info.get("language"),
-        #"publicDomain": access_info.get("publicDomain"),
         "printType": volume_info.get("printType"),
         "pageCount": volume_info.get("pageCount"),
         "description": volume_info.get("description"),

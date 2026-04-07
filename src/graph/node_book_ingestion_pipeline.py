@@ -1,19 +1,23 @@
-from typing import Dict, Any
-from src.utils.book_cache import get_book_chapters
-from src.graph.node_chapter_summarizer import load_summaries_from_json, save_summaries_to_json
-from src.utils.summarizer import summarize_long
-from src.utils.parallel_embedder import embed_batch
 import weaviate
 from weaviate.classes.config import Configure, Property, DataType
 from weaviate.classes.query import Filter
+from typing import Dict, Any
 
+from src.utils.book_cache import get_book_chapters
+from src.utils.summarizer import summarize_long
+from src.utils.parallel_embedder import embed_batch
+from src.graph.node_chapter_summarizer import load_summaries_from_json, save_summaries_to_json
 
-client = weaviate.connect_to_local()
+# Connect with weaviate
+client = weaviate.connect_to_local(
+    port=8080,
+    grpc_port=50051,
+)
 CLASS_NAME = "BookChunk"
 
 
 # ---------------------------------------------------------
-# Ensure collection exists (v4)
+# Ensure collection exists
 # ---------------------------------------------------------
 def ensure_collection():
     existing = client.collections.list_all()
@@ -41,7 +45,7 @@ def ensure_collection():
 
 
 # ---------------------------------------------------------
-# Check if book already ingested (v4)
+# Check if book already ingested
 # ---------------------------------------------------------
 def book_already_ingested(book_id: int) -> bool:
     collection = client.collections.get(CLASS_NAME)
@@ -65,7 +69,7 @@ def chunk_tokens(tokens, chunk_size=180, overlap=40):
 
 
 # ---------------------------------------------------------
-# Full ingestion pipeline (v4)
+# Full ingestion pipeline
 # ---------------------------------------------------------
 def book_ingestion_pipeline_node(state: Dict[str, Any]) -> Dict[str, Any]:
     book_id = state.get("book_id")
