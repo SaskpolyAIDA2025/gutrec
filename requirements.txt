@@ -1,6 +1,18 @@
+# Core Utilities
 pandas
 requests
 python-dotenv
+
+# Streamlit UI
+streamlit
+
+# Plotting & Math
+matplotlib
+numpy
+
+# HuggingFace Models
+transformers
+torch
 
 # Weaviate 4.x client
 weaviate-client>=4.0.0
@@ -18,3 +30,6 @@ langchain-ollama>=0.1.0
 
 # Pydantic v2 (required by LangChain)
 pydantic>=2.0.0
+
+# Used implicitly by LangChain / Transformers
+typing-extensions
