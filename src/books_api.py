@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 import os
 import requests
+import random, time
 
 load_dotenv()
 API_KEY = os.getenv("GOOGLE_BOOKS_API_KEY")
@@ -12,6 +13,9 @@ def get_book_metadata(title: str, author: str | None = None) -> dict | None:
     """
     title = title.strip()
     author = author.strip() if author else None
+
+    # Add a delay to avoid hitting API rate limits
+    time.sleep(1 + random.random())   # 1.0–2.0 seconds
 
     # Build query
     query = f"intitle:'{title}'"
