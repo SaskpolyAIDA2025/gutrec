@@ -2,9 +2,44 @@ from dotenv import load_dotenv
 import os
 import requests
 import random, time
+from requests.exceptions import RequestException, HTTPError
 
 load_dotenv()
 API_KEY = os.getenv("GOOGLE_BOOKS_API_KEY")
+
+
+def get_with_retry(url, params=None, max_retries=3, backoff_seconds=1):
+    """
+    Perform GET with simple retry on transient errors (e.g., 5xx).
+    """
+    for attempt in range(1, max_retries + 1):
+        try:
+            resp = requests.get(url, params=params, timeout=10)
+            # If status is 4xx/5xx, this will raise HTTPError
+            resp.raise_for_status()
+            return resp  # success
+
+        except HTTPError as e:
+            status = e.response.status_code if e.response is not None else None
+
+            # Retry only on 5xx (server-side) errors
+            if status is not None and 500 <= status < 600 and attempt < max_retries:
+                sleep_time = backoff_seconds * attempt  # simple linear backoff
+                print(f"HTTP {status} on attempt {attempt}, retrying in {sleep_time}s...")
+                time.sleep(sleep_time)
+                continue
+            # Non-retriable or last attempt
+            raise
+
+        except RequestException as e:
+            # Network issues, timeouts, etc. – you can choose to retry these too
+            if attempt < max_retries:
+                sleep_time = backoff_seconds * attempt
+                print(f"Request error on attempt {attempt}: {e}. Retrying in {sleep_time}s...")
+                time.sleep(sleep_time)
+                continue
+            raise
+
 
 def get_book_metadata(title: str, author: str | None = None) -> dict | None:
     """
@@ -15,7 +50,7 @@ def get_book_metadata(title: str, author: str | None = None) -> dict | None:
     author = author.strip() if author else None
 
     # Add a delay to avoid hitting API rate limits
-    time.sleep(1 + random.random())   # 1.0–2.0 seconds
+    time.sleep(3 + random.random())   # 1.0–2.0 seconds
 
     # Build query
     query = f"intitle:'{title}'"
@@ -29,8 +64,9 @@ def get_book_metadata(title: str, author: str | None = None) -> dict | None:
         "key": API_KEY
     }
 
-    resp = requests.get(url, params=params)
-    resp.raise_for_status()
+    # resp = requests.get(url, params=params)
+    # resp.raise_for_status()
+    resp = get_with_retry(url, params=params, max_retries=3, backoff_seconds=1)
     data = resp.json()
 
     if "items" not in data or not data["items"]:
