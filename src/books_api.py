@@ -50,7 +50,7 @@ def get_book_metadata(title: str, author: str | None = None) -> dict | None:
     author = author.strip() if author else None
 
     # Add a delay to avoid hitting API rate limits
-    time.sleep(3 + random.random())   # 1.0–2.0 seconds
+    # time.sleep(3 + random.random())   # Uncomment for evaluation
 
     # Build query
     query = f"intitle:'{title}'"
