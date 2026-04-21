@@ -1,7 +1,6 @@
 # CSV files
 books_metadata.csv
 processed_books.csv
-Book_list.csv
 
 # Virtual environment
 .venv/
