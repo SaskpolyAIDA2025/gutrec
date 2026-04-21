@@ -388,6 +388,12 @@ services:
     volumes:
       - ./weaviate_data:/var/lib/weaviate
 ```
+Add folder with data (with file name "weaviate_data") downloaded from: https://drive.google.com/drive/folders/11SCEnQJkClAVZ2G2kXDGX7uCKTGQGPey?usp=sharing
+
+Two options:
+
+- weaviate_data_5k (database with only 5,000 books)
+- weaviate_data_full (database with the complete catalogue of Project Gutenberg)
 
 Run:
 
